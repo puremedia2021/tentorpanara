@@ -263,6 +263,10 @@ export default {
     const method = request.method;
 
     try {
+      if (!pathname.startsWith("/api/")) {
+        return env.ASSETS.fetch(request);
+      }
+
       if (pathname === "/api/paket" && method === "GET") return listPaket(env);
       if (pathname === "/api/paket" && method === "POST")
         return createPaket(request, env);
