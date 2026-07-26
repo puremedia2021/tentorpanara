@@ -177,8 +177,7 @@ async function viewAcc(env, tok) {
     total: sesi.total,
     keterangan: sesi.keterangan,
     status: role === "tentor" ? sesi.status_tentor : sesi.status_siswa,
-    sudah_ada_foto:
-      role === "tentor" ? !!sesi.foto_tentor_key : !!sesi.foto_siswa_key,
+    sudah_ada_foto: role === "tentor" ? !!sesi.foto_tentor : !!sesi.foto_siswa,
   });
 }
 
@@ -187,28 +186,25 @@ async function submitAcc(request, env, tok) {
   if (!found) return err("Link tidak valid", 404);
   const { sesi, role } = found;
 
-  const form = await request.formData();
-  const file = form.get("foto");
-  if (!file || typeof file === "string") {
+  const b = await readJson(request);
+  if (!b.foto || typeof b.foto !== "string" || !b.foto.startsWith("data:image/")) {
     return err("Foto wajib diupload");
   }
-
-  const key = `sesi-${sesi.id}-${role}-${Date.now()}.jpg`;
-  await env.PHOTOS.put(key, await file.arrayBuffer(), {
-    httpMetadata: { contentType: file.type || "image/jpeg" },
-  });
+  if (b.foto.length > 900_000) {
+    return err("Ukuran foto terlalu besar, coba lagi");
+  }
 
   if (role === "tentor") {
     await env.DB.prepare(
-      "UPDATE sesi SET foto_tentor_key = ?, status_tentor = 'approved' WHERE id = ?"
+      "UPDATE sesi SET foto_tentor = ?, status_tentor = 'approved' WHERE id = ?"
     )
-      .bind(key, sesi.id)
+      .bind(b.foto, sesi.id)
       .run();
   } else {
     await env.DB.prepare(
-      "UPDATE sesi SET foto_siswa_key = ?, status_siswa = 'approved' WHERE id = ?"
+      "UPDATE sesi SET foto_siswa = ?, status_siswa = 'approved' WHERE id = ?"
     )
-      .bind(key, sesi.id)
+      .bind(b.foto, sesi.id)
       .run();
   }
 
@@ -216,13 +212,17 @@ async function submitAcc(request, env, tok) {
 }
 
 // ---- Foto ----
-async function getPhoto(env, key) {
-  const obj = await env.PHOTOS.get(key);
-  if (!obj) return err("Foto tidak ditemukan", 404);
-  return new Response(obj.body, {
-    headers: {
-      "content-type": obj.httpMetadata?.contentType || "image/jpeg",
-    },
+async function getFoto(env, sesiId, role) {
+  const col = role === "tentor" ? "foto_tentor" : "foto_siswa";
+  const row = await env.DB.prepare(`SELECT ${col} AS foto FROM sesi WHERE id = ?`)
+    .bind(Number(sesiId))
+    .first();
+  if (!row || !row.foto) return err("Foto tidak ditemukan", 404);
+  const [, contentType, base64] = row.foto.match(/^data:(.+);base64,(.*)$/) || [];
+  if (!base64) return err("Format foto tidak valid", 500);
+  const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+  return new Response(bytes, {
+    headers: { "content-type": contentType || "image/jpeg" },
   });
 }
 
@@ -289,8 +289,9 @@ export default {
       if (accMatch && method === "GET") return viewAcc(env, accMatch[1]);
       if (accMatch && method === "POST") return submitAcc(request, env, accMatch[1]);
 
-      const photoMatch = pathname.match(/^\/api\/photo\/(.+)$/);
-      if (photoMatch && method === "GET") return getPhoto(env, photoMatch[1]);
+      const fotoMatch = pathname.match(/^\/api\/foto\/(\d+)\/(tentor|siswa)$/);
+      if (fotoMatch && method === "GET")
+        return getFoto(env, fotoMatch[1], fotoMatch[2]);
 
       return err("Not found", 404);
     } catch (e) {
