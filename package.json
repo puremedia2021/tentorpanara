@@ -1,0 +1,15 @@
+{
+  "name": "tentor-payroll",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:create": "wrangler d1 create tentor-payroll-db",
+    "db:migrate": "wrangler d1 execute tentor-payroll-db --local --file=./schema.sql",
+    "db:migrate:remote": "wrangler d1 execute tentor-payroll-db --remote --file=./schema.sql"
+  },
+  "devDependencies": {
+    "wrangler": "^3.90.0"
+  }
+}

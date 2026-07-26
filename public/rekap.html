@@ -1,0 +1,45 @@
+<title>Rekap Payroll - Payroll Tentor</title>
+<link rel="stylesheet" href="/style.css">
+<nav>
+  <a href="/index.html">Beranda</a>
+  <a href="/admin.html">Master Data</a>
+  <a href="/sesi.html">Input Sesi</a>
+  <a href="/rekap.html">Rekap Payroll</a>
+</nav>
+<h1>Rekap Payroll Tentor</h1>
+<p>Hanya menampilkan sesi yang sudah di-acc oleh tentor <b>dan</b> siswa.</p>
+<div id="rekap">Memuat...</div>
+
+<script>
+const rupiah = (n) => "Rp " + Number(n).toLocaleString("id-ID");
+
+async function load() {
+  const res = await fetch("/api/rekap");
+  const data = await res.json();
+  const el = document.getElementById("rekap");
+  if (data.length === 0) {
+    el.innerHTML = "<p>Belum ada sesi yang disetujui kedua pihak.</p>";
+    return;
+  }
+  el.innerHTML = data.map(g => `
+    <h2>${g.tentor_nama} — Total: ${rupiah(g.total)}</h2>
+    <table>
+      <thead><tr><th>Siswa</th><th>Tempat</th><th>Jumlah Peserta</th><th>Harga</th><th>Total</th><th>Keterangan</th></tr></thead>
+      <tbody>
+        ${g.sesi.map(s => `
+          <tr>
+            <td>${s.siswa_nama}</td>
+            <td>${s.tempat}</td>
+            <td>${s.jumlah_peserta}</td>
+            <td>${rupiah(s.harga)}</td>
+            <td>${rupiah(s.total)}</td>
+            <td>${s.keterangan || "-"}</td>
+          </tr>
+        `).join("")}
+      </tbody>
+    </table>
+  `).join("");
+}
+
+load();
+</script>

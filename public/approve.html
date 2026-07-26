@@ -1,0 +1,70 @@
+<title>Acc Sesi - Payroll Tentor</title>
+<link rel="stylesheet" href="/style.css">
+<h1>Konfirmasi Sesi Belajar</h1>
+<div id="content">Memuat...</div>
+
+<script>
+const rupiah = (n) => "Rp " + Number(n).toLocaleString("id-ID");
+const params = new URLSearchParams(location.search);
+const tok = params.get("token");
+const content = document.getElementById("content");
+
+async function load() {
+  if (!tok) {
+    content.innerHTML = `<p class="msg error">Link tidak valid (token kosong).</p>`;
+    return;
+  }
+  const res = await fetch(`/api/acc/${tok}`);
+  const data = await res.json();
+  if (!res.ok) {
+    content.innerHTML = `<p class="msg error">${data.error}</p>`;
+    return;
+  }
+
+  const roleLabel = data.role === "tentor" ? "Tentor" : "Siswa";
+  const alreadyApproved = data.status === "approved";
+
+  content.innerHTML = `
+    <p>Anda login sebagai: <b>${roleLabel}</b></p>
+    <table>
+      <tr><th>Tentor</th><td>${data.tentor_nama}</td></tr>
+      <tr><th>Siswa</th><td>${data.siswa_nama}</td></tr>
+      <tr><th>Tempat</th><td>${data.tempat}</td></tr>
+      <tr><th>Jumlah Peserta</th><td>${data.jumlah_peserta}</td></tr>
+      <tr><th>Harga</th><td>${rupiah(data.harga)}</td></tr>
+      <tr><th>Total</th><td>${rupiah(data.total)}</td></tr>
+      <tr><th>Keterangan</th><td>${data.keterangan || "-"}</td></tr>
+      <tr><th>Status</th><td><span class="badge ${data.status}">${data.status}</span></td></tr>
+    </table>
+    ${alreadyApproved ? `<p class="msg ok">Sesi ini sudah Anda acc.</p>` : `
+      <form id="form-acc">
+        <label>Upload Foto Bukti (wajah saat belajar)</label>
+        <input type="file" name="foto" accept="image/*" capture="user" required>
+        <button type="submit">Acc Sesi Ini</button>
+        <p class="msg" id="msg-acc"></p>
+      </form>
+    `}
+  `;
+
+  const form = document.getElementById("form-acc");
+  if (form) {
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const msg = document.getElementById("msg-acc");
+      const fd = new FormData(e.target);
+      const res = await fetch(`/api/acc/${tok}`, { method: "POST", body: fd });
+      const result = await res.json();
+      if (!res.ok) {
+        msg.textContent = result.error || "Gagal mengirim acc";
+        msg.className = "msg error";
+        return;
+      }
+      msg.textContent = "Berhasil acc. Terima kasih.";
+      msg.className = "msg ok";
+      form.querySelector("button").disabled = true;
+    });
+  }
+}
+
+load();
+</script>

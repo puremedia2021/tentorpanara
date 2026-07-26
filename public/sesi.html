@@ -1,0 +1,99 @@
+<title>Input Sesi - Payroll Tentor</title>
+<link rel="stylesheet" href="/style.css">
+<nav>
+  <a href="/index.html">Beranda</a>
+  <a href="/admin.html">Master Data</a>
+  <a href="/sesi.html">Input Sesi</a>
+  <a href="/rekap.html">Rekap Payroll</a>
+</nav>
+<h1>Input Sesi Belajar</h1>
+<form id="form-sesi">
+  <label>Tentor</label>
+  <select name="tentor_id" id="select-tentor" required></select>
+  <label>Siswa</label>
+  <select name="siswa_id" id="select-siswa" required></select>
+  <label>Tempat</label>
+  <input name="tempat" required placeholder="mis. Rumah siswa, Kantor cabang A">
+  <label>Jumlah Peserta</label>
+  <input name="jumlah_peserta" type="number" min="1" value="1" required>
+  <label>Keterangan</label>
+  <textarea name="keterangan" rows="2"></textarea>
+  <button type="submit">Simpan Sesi</button>
+  <p class="msg" id="msg-sesi"></p>
+</form>
+
+<div id="hasil" style="display:none">
+  <h2>Sesi Tersimpan</h2>
+  <p>Bagikan link berikut ke masing-masing pihak untuk acc:</p>
+  <p>Link Acc Tentor:</p>
+  <p class="link-box" id="link-tentor"></p>
+  <p>Link Acc Siswa:</p>
+  <p class="link-box" id="link-siswa"></p>
+</div>
+
+<h2>Daftar Sesi Pending</h2>
+<table id="tbl-sesi">
+  <thead><tr><th>Tentor</th><th>Siswa</th><th>Tempat</th><th>Total</th><th>Status Tentor</th><th>Status Siswa</th></tr></thead>
+  <tbody></tbody>
+</table>
+
+<script>
+const rupiah = (n) => "Rp " + Number(n).toLocaleString("id-ID");
+
+async function loadOptions() {
+  const [tentor, siswa] = await Promise.all([
+    fetch("/api/tentor").then(r => r.json()),
+    fetch("/api/siswa").then(r => r.json()),
+  ]);
+  document.getElementById("select-tentor").innerHTML =
+    tentor.map(t => `<option value="${t.id}">${t.nama}</option>`).join("");
+  document.getElementById("select-siswa").innerHTML =
+    siswa.map(s => `<option value="${s.id}">${s.nama} (${s.paket_nama})</option>`).join("");
+}
+
+async function loadSesi() {
+  const res = await fetch("/api/sesi?status=pending");
+  const data = await res.json();
+  document.querySelector("#tbl-sesi tbody").innerHTML = data.map(s => `
+    <tr>
+      <td>${s.tentor_nama}</td>
+      <td>${s.siswa_nama}</td>
+      <td>${s.tempat}</td>
+      <td>${rupiah(s.total)}</td>
+      <td><span class="badge ${s.status_tentor}">${s.status_tentor}</span></td>
+      <td><span class="badge ${s.status_siswa}">${s.status_siswa}</span></td>
+    </tr>
+  `).join("");
+}
+
+document.getElementById("form-sesi").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const msg = document.getElementById("msg-sesi");
+  msg.textContent = "";
+  msg.className = "msg";
+  const fd = new FormData(e.target);
+  const body = Object.fromEntries(fd.entries());
+  const res = await fetch("/api/sesi", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    msg.textContent = data.error || "Gagal menyimpan";
+    msg.className = "msg error";
+    return;
+  }
+  msg.textContent = `Sesi tersimpan. Total: ${rupiah(data.total)}`;
+  msg.className = "msg ok";
+  const origin = location.origin;
+  document.getElementById("link-tentor").textContent = origin + data.link_tentor;
+  document.getElementById("link-siswa").textContent = origin + data.link_siswa;
+  document.getElementById("hasil").style.display = "block";
+  e.target.reset();
+  loadSesi();
+});
+
+loadOptions();
+loadSesi();
+</script>

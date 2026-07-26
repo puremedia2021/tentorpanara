@@ -1,0 +1,118 @@
+<title>Master Data - Payroll Tentor</title>
+<link rel="stylesheet" href="/style.css">
+<nav>
+  <a href="/index.html">Beranda</a>
+  <a href="/admin.html">Master Data</a>
+  <a href="/sesi.html">Input Sesi</a>
+  <a href="/rekap.html">Rekap Payroll</a>
+</nav>
+<h1>Master Data</h1>
+
+<h2>Paket Belajar</h2>
+<form id="form-paket">
+  <label>Nama Paket</label>
+  <input name="nama" required>
+  <label>Jenis Belajar</label>
+  <input name="jenis_belajar" required placeholder="mis. Privat, Kelompok, Online">
+  <label>Fee Tentor per Peserta (Rp)</label>
+  <input name="fee_tentor" type="number" min="0" step="1000" required>
+  <button type="submit">Tambah Paket</button>
+  <p class="msg" id="msg-paket"></p>
+</form>
+<table id="tbl-paket">
+  <thead><tr><th>Nama</th><th>Jenis Belajar</th><th>Fee Tentor</th></tr></thead>
+  <tbody></tbody>
+</table>
+
+<h2>Tentor</h2>
+<form id="form-tentor">
+  <label>Nama Tentor</label>
+  <input name="nama" required>
+  <button type="submit">Tambah Tentor</button>
+  <p class="msg" id="msg-tentor"></p>
+</form>
+<table id="tbl-tentor">
+  <thead><tr><th>Nama</th></tr></thead>
+  <tbody></tbody>
+</table>
+
+<h2>Siswa</h2>
+<form id="form-siswa">
+  <label>Nama Siswa</label>
+  <input name="nama" required>
+  <label>Paket</label>
+  <select name="paket_id" id="select-paket" required></select>
+  <button type="submit">Tambah Siswa</button>
+  <p class="msg" id="msg-siswa"></p>
+</form>
+<table id="tbl-siswa">
+  <thead><tr><th>Nama</th><th>Paket</th><th>Fee Tentor</th></tr></thead>
+  <tbody></tbody>
+</table>
+
+<script>
+const rupiah = (n) => "Rp " + Number(n).toLocaleString("id-ID");
+
+async function loadPaket() {
+  const res = await fetch("/api/paket");
+  const data = await res.json();
+  document.querySelector("#tbl-paket tbody").innerHTML = data.map(p =>
+    `<tr><td>${p.nama}</td><td>${p.jenis_belajar}</td><td>${rupiah(p.fee_tentor)}</td></tr>`
+  ).join("");
+  const select = document.getElementById("select-paket");
+  select.innerHTML = data.map(p =>
+    `<option value="${p.id}">${p.nama} (${p.jenis_belajar}, ${rupiah(p.fee_tentor)})</option>`
+  ).join("");
+  return data;
+}
+
+async function loadTentor() {
+  const res = await fetch("/api/tentor");
+  const data = await res.json();
+  document.querySelector("#tbl-tentor tbody").innerHTML = data.map(t =>
+    `<tr><td>${t.nama}</td></tr>`
+  ).join("");
+}
+
+async function loadSiswa() {
+  const res = await fetch("/api/siswa");
+  const data = await res.json();
+  document.querySelector("#tbl-siswa tbody").innerHTML = data.map(s =>
+    `<tr><td>${s.nama}</td><td>${s.paket_nama}</td><td>${rupiah(s.paket_fee)}</td></tr>`
+  ).join("");
+}
+
+function bindForm(formId, url, msgId, onDone) {
+  document.getElementById(formId).addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const msg = document.getElementById(msgId);
+    msg.textContent = "";
+    msg.className = "msg";
+    const fd = new FormData(e.target);
+    const body = Object.fromEntries(fd.entries());
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      msg.textContent = data.error || "Gagal menyimpan";
+      msg.className = "msg error";
+      return;
+    }
+    msg.textContent = "Berhasil disimpan";
+    msg.className = "msg ok";
+    e.target.reset();
+    onDone();
+  });
+}
+
+bindForm("form-paket", "/api/paket", "msg-paket", () => { loadPaket(); });
+bindForm("form-tentor", "/api/tentor", "msg-tentor", loadTentor);
+bindForm("form-siswa", "/api/siswa", "msg-siswa", loadSiswa);
+
+loadPaket();
+loadTentor();
+loadSiswa();
+</script>
