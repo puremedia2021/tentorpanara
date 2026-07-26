@@ -1,12 +1,7 @@
 <meta charset="utf-8">
 <title>Master Data - Payroll Tentor</title>
 <link rel="stylesheet" href="/style.css">
-<nav>
-  <a href="/index.html">Beranda</a>
-  <a href="/admin.html">Master Data</a>
-  <a href="/sesi.html">Input Sesi</a>
-  <a href="/rekap.html">Rekap Payroll</a>
-</nav>
+<nav id="nav"></nav>
 <h1>Master Data</h1>
 
 <h2>Paket Belajar</h2>
@@ -14,14 +9,21 @@
   <label>Nama Paket</label>
   <input name="nama" required>
   <label>Jenis Belajar</label>
-  <input name="jenis_belajar" required placeholder="mis. Privat, Kelompok, Online">
+  <select name="jenis_belajar" required>
+    <option value="Online">Online</option>
+    <option value="Offline - Cabang">Offline - Cabang</option>
+    <option value="Offline - Full House">Offline - Full House</option>
+    <option value="Offline - Luar">Offline - Luar</option>
+  </select>
   <label>Fee Tentor per Peserta (Rp)</label>
   <input name="fee_tentor" type="number" min="0" step="1000" required>
+  <label>Kuota Jumlah Sesi</label>
+  <input name="kuota_sesi" type="number" min="0" step="1" required>
   <button type="submit">Tambah Paket</button>
   <p class="msg" id="msg-paket"></p>
 </form>
 <table id="tbl-paket">
-  <thead><tr><th>Nama</th><th>Jenis Belajar</th><th>Fee Tentor</th></tr></thead>
+  <thead><tr><th>Nama</th><th>Jenis Belajar</th><th>Fee Tentor</th><th>Kuota Sesi</th></tr></thead>
   <tbody></tbody>
 </table>
 
@@ -29,11 +31,15 @@
 <form id="form-tentor">
   <label>Nama Tentor</label>
   <input name="nama" required>
+  <label>Username</label>
+  <input name="username" required>
+  <label>Password</label>
+  <input name="password" type="password" required>
   <button type="submit">Tambah Tentor</button>
   <p class="msg" id="msg-tentor"></p>
 </form>
 <table id="tbl-tentor">
-  <thead><tr><th>Nama</th></tr></thead>
+  <thead><tr><th>Nama</th><th>Username</th></tr></thead>
   <tbody></tbody>
 </table>
 
@@ -43,26 +49,29 @@
   <input name="nama" required>
   <label>Paket</label>
   <select name="paket_id" id="select-paket" required></select>
+  <label>Username</label>
+  <input name="username" required>
+  <label>Password</label>
+  <input name="password" type="password" required>
   <button type="submit">Tambah Siswa</button>
   <p class="msg" id="msg-siswa"></p>
 </form>
 <table id="tbl-siswa">
-  <thead><tr><th>Nama</th><th>Paket</th><th>Fee Tentor</th></tr></thead>
+  <thead><tr><th>Nama</th><th>Username</th><th>Paket</th><th>Fee Tentor</th><th>Sisa Kuota Sesi</th></tr></thead>
   <tbody></tbody>
 </table>
 
+<script src="/nav.js"></script>
 <script>
-const rupiah = (n) => "Rp " + Number(n).toLocaleString("id-ID");
-
 async function loadPaket() {
   const res = await fetch("/api/paket");
   const data = await res.json();
   document.querySelector("#tbl-paket tbody").innerHTML = data.map(p =>
-    `<tr><td>${p.nama}</td><td>${p.jenis_belajar}</td><td>${rupiah(p.fee_tentor)}</td></tr>`
+    `<tr><td>${p.nama}</td><td>${p.jenis_belajar}</td><td>${rupiah(p.fee_tentor)}</td><td>${p.kuota_sesi}</td></tr>`
   ).join("");
   const select = document.getElementById("select-paket");
   select.innerHTML = data.map(p =>
-    `<option value="${p.id}">${p.nama} (${p.jenis_belajar}, ${rupiah(p.fee_tentor)})</option>`
+    `<option value="${p.id}">${p.nama} (${p.jenis_belajar}, ${rupiah(p.fee_tentor)}, kuota ${p.kuota_sesi})</option>`
   ).join("");
   return data;
 }
@@ -71,7 +80,7 @@ async function loadTentor() {
   const res = await fetch("/api/tentor");
   const data = await res.json();
   document.querySelector("#tbl-tentor tbody").innerHTML = data.map(t =>
-    `<tr><td>${t.nama}</td></tr>`
+    `<tr><td>${t.nama}</td><td>${t.username}</td></tr>`
   ).join("");
 }
 
@@ -79,7 +88,7 @@ async function loadSiswa() {
   const res = await fetch("/api/siswa");
   const data = await res.json();
   document.querySelector("#tbl-siswa tbody").innerHTML = data.map(s =>
-    `<tr><td>${s.nama}</td><td>${s.paket_nama}</td><td>${rupiah(s.paket_fee)}</td></tr>`
+    `<tr><td>${s.nama}</td><td>${s.username}</td><td>${s.paket_nama}</td><td>${rupiah(s.paket_fee)}</td><td>${s.sisa_sesi}</td></tr>`
   ).join("");
 }
 
@@ -109,11 +118,15 @@ function bindForm(formId, url, msgId, onDone) {
   });
 }
 
-bindForm("form-paket", "/api/paket", "msg-paket", () => { loadPaket(); });
-bindForm("form-tentor", "/api/tentor", "msg-tentor", loadTentor);
-bindForm("form-siswa", "/api/siswa", "msg-siswa", loadSiswa);
-
-loadPaket();
-loadTentor();
-loadSiswa();
+(async () => {
+  const me = await requireAuth(["tim"]);
+  if (!me) return;
+  initNav();
+  bindForm("form-paket", "/api/paket", "msg-paket", () => { loadPaket(); });
+  bindForm("form-tentor", "/api/tentor", "msg-tentor", loadTentor);
+  bindForm("form-siswa", "/api/siswa", "msg-siswa", loadSiswa);
+  loadPaket();
+  loadTentor();
+  loadSiswa();
+})();
 </script>

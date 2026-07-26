@@ -1,0 +1,40 @@
+<meta charset="utf-8">
+<title>Setup Tim - Payroll Tentor</title>
+<link rel="stylesheet" href="/style.css">
+<h1>Setup Akun Tim Pertama</h1>
+<p>Halaman ini hanya bisa dipakai satu kali, sebelum ada akun Tim sama sekali. Setelah akun Tim pertama dibuat, halaman ini akan otomatis terkunci.</p>
+<form id="form-setup">
+  <label>Nama</label>
+  <input name="nama" required>
+  <label>Username</label>
+  <input name="username" required autocomplete="username">
+  <label>Password</label>
+  <input name="password" type="password" required autocomplete="new-password">
+  <button type="submit">Buat Akun Tim</button>
+  <p class="msg" id="msg"></p>
+</form>
+
+<script>
+document.getElementById("form-setup").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const msg = document.getElementById("msg");
+  msg.textContent = "";
+  msg.className = "msg";
+  const fd = new FormData(e.target);
+  const body = Object.fromEntries(fd.entries());
+  const res = await fetch("/api/setup-tim", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    msg.textContent = data.error || "Gagal setup";
+    msg.className = "msg error";
+    return;
+  }
+  msg.textContent = "Akun Tim berhasil dibuat. Mengalihkan ke halaman login...";
+  msg.className = "msg ok";
+  setTimeout(() => (location.href = "/login.html"), 1500);
+});
+</script>

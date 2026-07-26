@@ -1,0 +1,42 @@
+<meta charset="utf-8">
+<title>Login - Payroll Tentor</title>
+<link rel="stylesheet" href="/style.css">
+<h1>Login Payroll Tentor</h1>
+<form id="form-login">
+  <label>Login sebagai</label>
+  <select name="role" required>
+    <option value="tim">Tim</option>
+    <option value="tentor">Tentor</option>
+    <option value="siswa">Siswa</option>
+  </select>
+  <label>Username</label>
+  <input name="username" required autocomplete="username">
+  <label>Password</label>
+  <input name="password" type="password" required autocomplete="current-password">
+  <button type="submit">Login</button>
+  <p class="msg" id="msg"></p>
+</form>
+<p style="font-size:0.85rem">Belum ada akun Tim sama sekali? <a href="/setup.html">Setup akun Tim pertama</a>.</p>
+
+<script>
+document.getElementById("form-login").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const msg = document.getElementById("msg");
+  msg.textContent = "";
+  msg.className = "msg";
+  const fd = new FormData(e.target);
+  const body = Object.fromEntries(fd.entries());
+  const res = await fetch("/api/login", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    msg.textContent = data.error || "Login gagal";
+    msg.className = "msg error";
+    return;
+  }
+  location.href = data.role === "tim" ? "/admin.html" : "/dashboard.html";
+});
+</script>

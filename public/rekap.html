@@ -1,19 +1,13 @@
 <meta charset="utf-8">
 <title>Rekap Payroll - Payroll Tentor</title>
 <link rel="stylesheet" href="/style.css">
-<nav>
-  <a href="/index.html">Beranda</a>
-  <a href="/admin.html">Master Data</a>
-  <a href="/sesi.html">Input Sesi</a>
-  <a href="/rekap.html">Rekap Payroll</a>
-</nav>
+<nav id="nav"></nav>
 <h1>Rekap Payroll Tentor</h1>
 <p>Hanya menampilkan sesi yang sudah di-acc oleh tentor <b>dan</b> siswa.</p>
 <div id="rekap">Memuat...</div>
 
+<script src="/nav.js"></script>
 <script>
-const rupiah = (n) => "Rp " + Number(n).toLocaleString("id-ID");
-
 async function load() {
   const res = await fetch("/api/rekap");
   const data = await res.json();
@@ -42,5 +36,10 @@ async function load() {
   `).join("");
 }
 
-load();
+(async () => {
+  const me = await requireAuth(["tim", "tentor"]);
+  if (!me) return;
+  initNav();
+  load();
+})();
 </script>

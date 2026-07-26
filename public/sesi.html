@@ -1,12 +1,7 @@
 <meta charset="utf-8">
 <title>Input Sesi - Payroll Tentor</title>
 <link rel="stylesheet" href="/style.css">
-<nav>
-  <a href="/index.html">Beranda</a>
-  <a href="/admin.html">Master Data</a>
-  <a href="/sesi.html">Input Sesi</a>
-  <a href="/rekap.html">Rekap Payroll</a>
-</nav>
+<nav id="nav"></nav>
 <h1>Input Sesi Belajar</h1>
 <form id="form-sesi">
   <label>Tentor</label>
@@ -23,24 +18,14 @@
   <p class="msg" id="msg-sesi"></p>
 </form>
 
-<div id="hasil" style="display:none">
-  <h2>Sesi Tersimpan</h2>
-  <p>Bagikan link berikut ke masing-masing pihak untuk acc:</p>
-  <p>Link Acc Tentor:</p>
-  <p class="link-box" id="link-tentor"></p>
-  <p>Link Acc Siswa:</p>
-  <p class="link-box" id="link-siswa"></p>
-</div>
-
 <h2>Daftar Sesi Pending</h2>
 <table id="tbl-sesi">
   <thead><tr><th>Tentor</th><th>Siswa</th><th>Tempat</th><th>Total</th><th>Status Tentor</th><th>Status Siswa</th></tr></thead>
   <tbody></tbody>
 </table>
 
+<script src="/nav.js"></script>
 <script>
-const rupiah = (n) => "Rp " + Number(n).toLocaleString("id-ID");
-
 async function loadOptions() {
   const [tentor, siswa] = await Promise.all([
     fetch("/api/tentor").then(r => r.json()),
@@ -49,7 +34,7 @@ async function loadOptions() {
   document.getElementById("select-tentor").innerHTML =
     tentor.map(t => `<option value="${t.id}">${t.nama}</option>`).join("");
   document.getElementById("select-siswa").innerHTML =
-    siswa.map(s => `<option value="${s.id}">${s.nama} (${s.paket_nama})</option>`).join("");
+    siswa.map(s => `<option value="${s.id}">${s.nama} (${s.paket_nama}, sisa kuota ${s.sisa_sesi})</option>`).join("");
 }
 
 async function loadSesi() {
@@ -85,16 +70,18 @@ document.getElementById("form-sesi").addEventListener("submit", async (e) => {
     msg.className = "msg error";
     return;
   }
-  msg.textContent = `Sesi tersimpan. Total: ${rupiah(data.total)}`;
+  msg.textContent = `Sesi tersimpan. Total: ${rupiah(data.total)}. Tentor & siswa bisa acc lewat dashboard masing-masing setelah login.`;
   msg.className = "msg ok";
-  const origin = location.origin;
-  document.getElementById("link-tentor").textContent = origin + data.link_tentor;
-  document.getElementById("link-siswa").textContent = origin + data.link_siswa;
-  document.getElementById("hasil").style.display = "block";
   e.target.reset();
+  loadOptions();
   loadSesi();
 });
 
-loadOptions();
-loadSesi();
+(async () => {
+  const me = await requireAuth(["tim"]);
+  if (!me) return;
+  initNav();
+  loadOptions();
+  loadSesi();
+})();
 </script>

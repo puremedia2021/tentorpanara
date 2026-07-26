@@ -1,0 +1,102 @@
+<meta charset="utf-8">
+<title>Sesi Saya - Payroll Tentor</title>
+<link rel="stylesheet" href="/style.css">
+<nav id="nav"></nav>
+<h1>Sesi Saya</h1>
+
+<h2>Menunggu Acc Saya</h2>
+<div id="pending">Memuat...</div>
+
+<h2>Sudah Saya Acc</h2>
+<div id="approved">Memuat...</div>
+
+<script src="/nav.js"></script>
+<script>
+let myRole = null;
+
+function sesiCard(s, statusMine, canAcc) {
+  return `
+    <div class="link-box" style="margin-bottom:10px">
+      <table>
+        <tr><th>Tentor</th><td>${s.tentor_nama}</td></tr>
+        <tr><th>Siswa</th><td>${s.siswa_nama}</td></tr>
+        <tr><th>Tempat</th><td>${s.tempat}</td></tr>
+        <tr><th>Jumlah Peserta</th><td>${s.jumlah_peserta}</td></tr>
+        <tr><th>Total</th><td>${rupiah(s.total)}</td></tr>
+        <tr><th>Keterangan</th><td>${s.keterangan || "-"}</td></tr>
+        <tr><th>Status Anda</th><td><span class="badge ${statusMine}">${statusMine}</span></td></tr>
+      </table>
+      ${canAcc ? `
+        <form class="form-acc" data-id="${s.id}">
+          <label>Upload Foto Bukti (wajah saat belajar)</label>
+          <input type="file" name="foto" accept="image/*" capture="user" required>
+          <button type="submit">Acc Sesi Ini</button>
+          <p class="msg"></p>
+        </form>
+      ` : ""}
+    </div>
+  `;
+}
+
+async function load() {
+  const res = await fetch("/api/sesi-saya");
+  const data = await res.json();
+  const statusCol = myRole === "tentor" ? "status_tentor" : "status_siswa";
+
+  const pending = data.filter(s => s[statusCol] !== "approved");
+  const approved = data.filter(s => s[statusCol] === "approved");
+
+  document.getElementById("pending").innerHTML = pending.length
+    ? pending.map(s => sesiCard(s, s[statusCol], true)).join("")
+    : "<p>Tidak ada sesi yang menunggu acc Anda.</p>";
+
+  document.getElementById("approved").innerHTML = approved.length
+    ? approved.map(s => sesiCard(s, s[statusCol], false)).join("")
+    : "<p>Belum ada sesi yang sudah Anda acc.</p>";
+
+  document.querySelectorAll(".form-acc").forEach(form => {
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const msg = form.querySelector(".msg");
+      const file = form.querySelector('input[name="foto"]').files[0];
+      if (!file) return;
+
+      msg.textContent = "Memproses foto & lokasi...";
+      msg.className = "msg";
+
+      let fotoDataUrl, loc;
+      try {
+        [fotoDataUrl, loc] = await Promise.all([compressImage(file), getLocation()]);
+      } catch {
+        msg.textContent = "Gagal memproses foto, coba lagi";
+        msg.className = "msg error";
+        return;
+      }
+
+      const id = form.dataset.id;
+      const res = await fetch(`/api/sesi/${id}/acc`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ foto: fotoDataUrl, lat: loc.lat, lng: loc.lng }),
+      });
+      const result = await res.json();
+      if (!res.ok) {
+        msg.textContent = result.error || "Gagal mengirim acc";
+        msg.className = "msg error";
+        return;
+      }
+      msg.textContent = "Berhasil acc. Terima kasih.";
+      msg.className = "msg ok";
+      load();
+    });
+  });
+}
+
+(async () => {
+  const me = await requireAuth(["tentor", "siswa"]);
+  if (!me) return;
+  myRole = me.role;
+  initNav();
+  load();
+})();
+</script>

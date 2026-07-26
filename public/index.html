@@ -1,18 +1,16 @@
 <meta charset="utf-8">
 <title>Payroll Tentor</title>
 <link rel="stylesheet" href="/style.css">
-<nav>
-  <a href="/index.html">Beranda</a>
-  <a href="/admin.html">Master Data</a>
-  <a href="/sesi.html">Input Sesi</a>
-  <a href="/rekap.html">Rekap Payroll</a>
-</nav>
+<nav id="nav"></nav>
 <h1>Sistem Payroll Tentor</h1>
 <p>Alur kerja:</p>
 <ol>
-  <li>Buat data <b>Paket</b>, <b>Tentor</b>, dan <b>Siswa</b> di halaman Master Data.</li>
-  <li>Input <b>Sesi</b> belajar baru (tempat, jumlah peserta, keterangan) di halaman Input Sesi.</li>
-  <li>Sistem akan membuat 2 link acc: satu untuk tentor, satu untuk siswa.</li>
-  <li>Tentor dan siswa membuka link masing-masing, upload foto bukti, lalu klik Acc.</li>
-  <li>Setelah kedua-duanya acc, sesi otomatis masuk ke <b>Rekap Payroll</b>.</li>
+  <li>Tim membuat data <b>Paket</b> (jenis belajar online/offline, fee tentor, kuota sesi), <b>Tentor</b>, dan <b>Siswa</b> (masing-masing punya akun login) di halaman Master Data.</li>
+  <li>Tim input <b>Sesi</b> belajar baru (tentor, siswa, tempat, jumlah peserta, keterangan) di halaman Input Sesi. Harga otomatis dari paket siswa.</li>
+  <li>Tentor login ke akunnya sendiri untuk lihat sesi miliknya, upload foto bukti (dengan lokasi GPS), dan klik Acc.</li>
+  <li>Siswa login ke akunnya sendiri untuk melakukan hal yang sama.</li>
+  <li>Setelah kedua-duanya acc, sesi otomatis masuk ke <b>Rekap Payroll</b>, dan kuota sesi siswa otomatis berkurang 1.</li>
 </ol>
+
+<script src="/nav.js"></script>
+<script>initNav();</script>
