@@ -1,0 +1,1957 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panara Go</title>
+    
+    <script src="config.js?v=2026"></script>
+
+    <script>
+        (function() {
+            const CACHE_KEY = 'melimpah_global_settings';
+            const CACHE_AGE = 60 * 60 * 1000; 
+            window.waAdminGlobal = '';
+            
+            let cachedFav = localStorage.getItem('site_favicon');
+            function applyFavicon(url) {
+                if(!url) return;
+                let link = document.querySelector("link[rel~='icon']");
+                if (!link) { link = document.createElement('link'); link.rel = 'icon'; document.head.appendChild(link); }
+                link.href = url;
+            }
+
+            function applyGlobalSettings(data) {
+                // ==========================================
+                // FORMULA WARNA TEMA DINAMIS (THEME INJECTOR)
+                // ==========================================
+                if(data.theme_color) {
+                    let themeStyle = document.getElementById('dynamic-theme');
+                    if (!themeStyle) {
+                        themeStyle = document.createElement('style');
+                        themeStyle.id = 'dynamic-theme';
+                        document.head.appendChild(themeStyle);
+                    }
+                    
+                    themeStyle.innerHTML = `
+                        :root {
+                            --brand-blue: ${data.theme_color} !important;
+                        }
+                        
+                        /* Override Tombol & Background Utama */
+                        .auth-btn-primary, .badge-lunas, .btn-main.primary, .header-avatar { 
+                            background-color: ${data.theme_color} !important; 
+                            color: white !important; 
+                        }
+                        .auth-btn-primary:hover, .btn-main.primary:hover { opacity: 0.85 !important; }
+                        
+                        /* Override Teks & Link */
+                        .auth-title .highlight, .auth-toggle-link, .text-brand-blue { 
+                            color: ${data.theme_color} !important; 
+                        }
+                        
+                        /* Override Input Focus */
+                        .auth-input-field:focus, .modal-form-input:focus { 
+                            border-color: ${data.theme_color} !important; 
+                            box-shadow: 0 0 0 3px ${data.theme_color}33 !important; 
+                        }
+                        
+                        /* Override Menu Aktif Sidebar */
+                        .nav-item.active { 
+                            background: ${data.theme_color}15 !important; 
+                            color: ${data.theme_color} !important; 
+                            border-right: 3px solid ${data.theme_color} !important; 
+                        }
+                        
+                        /* Override Kotak Link Affiliate */
+                        .aff-link-box.theme-blue { border-left-color: ${data.theme_color} !important; }
+                        .aff-link-box.theme-blue .btn-copy { background-color: ${data.theme_color} !important; }
+                        .aff-link-box.theme-blue .btn-copy:hover { opacity: 0.85 !important; }
+                        .aff-link-box.theme-blue .aff-link-icon { 
+                            color: ${data.theme_color} !important; 
+                            background: ${data.theme_color}15 !important; 
+                        }
+                    `;
+                }
+                // ==========================================
+
+                if(data.site_name) { document.title = document.title.replace(/Melimpah Digital/gi, data.site_name).replace(/Melimpah/gi, data.site_name).replace(/Sistem Digital/gi, data.site_name).replace(/SheetFlare/gi, data.site_name); }
+                if(data.wa_admin) window.waAdminGlobal = data.wa_admin;
+
+                const updateDomElements = () => {
+                    if(data.site_name) { document.querySelectorAll('.dyn-site-name').forEach(el => el.innerText = data.site_name); }
+                    if(data.site_tagline) { document.querySelectorAll('.dyn-site-tagline').forEach(el => el.innerText = data.site_tagline); }
+                    
+                    if(data.site_logo) {
+                        const logoImg = document.getElementById('auth-logo');
+                        const logoText = document.getElementById('auth-logo-text');
+                        if(logoImg && logoText) {
+                            logoImg.src = data.site_logo;
+                            logoImg.classList.remove('hidden');
+                            logoText.classList.add('hidden');
+                        }
+                    }
+                };
+                
+                if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', updateDomElements); } else { updateDomElements(); }
+
+                // ==========================================
+                // TRACKING & ANALYTICS INJECTOR
+                // ==========================================
+                
+                // 1. Inject Google Analytics
+                if(data.ga_id && !window.gaInjected) {
+                    let gaScript = document.createElement('script');
+                    gaScript.async = true;
+                    gaScript.src = 'https://www.googletagmanager.com/gtag/js?id=' + data.ga_id;
+                    document.head.appendChild(gaScript);
+                    
+                    let gaInline = document.createElement('script');
+                    gaInline.innerHTML = `window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', '${data.ga_id}');`;
+                    document.head.appendChild(gaInline);
+                    window.gaInjected = true;
+                }
+                
+                // 2. Inject Meta Pixel
+                if(data.meta_pixel_id && !window.pixelInjected) {
+                    let pixelInline = document.createElement('script');
+                    pixelInline.innerHTML = `!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window, document,'script','https://connect.facebook.net/en_US/fbevents.js'); fbq('init', '${data.meta_pixel_id}'); fbq('track', 'PageView');`;
+                    document.head.appendChild(pixelInline);
+                    window.pixelInjected = true;
+                }
+            }
+            
+            if(cachedFav) applyFavicon(cachedFav);
+            const cachedStr = localStorage.getItem(CACHE_KEY); let cached = null;
+            try { cached = JSON.parse(cachedStr); } catch(e){}
+            const now = Date.now();
+            if (cached && cached.data) { applyGlobalSettings(cached.data); }
+
+            if (!cached || !cached.time || (now - cached.time > CACHE_AGE)) {
+                if(typeof window.SCRIPT_URL !== 'undefined' || typeof SCRIPT_URL !== 'undefined') {
+                    const targetUrl = window.SCRIPT_URL || SCRIPT_URL;
+                    fetch(targetUrl, { method: 'POST', body: JSON.stringify({ action: 'get_global_settings' }) })
+                        .then(res => res.json())
+                        .then(r => {
+                            if(r.status === 'success' && r.data) {
+                                localStorage.setItem(CACHE_KEY, JSON.stringify({ data: r.data, time: now })); applyGlobalSettings(r.data); 
+                                if(r.data.site_favicon && cachedFav !== r.data.site_favicon) { localStorage.setItem('site_favicon', r.data.site_favicon); applyFavicon(r.data.site_favicon); }
+                            }
+                        }).catch(e => {});
+                }
+            }
+        })();
+    </script>
+    
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --brand-blue: #00AAE7;
+            --brand-blue-hover: #0092c7;
+            --brand-orange: #FF9800;
+            --brand-orange-hover: #e68900;
+            
+            --slate-50: #f8fafc; --slate-100: #f1f5f9; --slate-200: #e2e8f0; --slate-300: #cbd5e1; --slate-400: #94a3b8; --slate-500: #64748b; --slate-600: #475569; --slate-700: #334155; --slate-800: #1e293b; --slate-900: #0f172a;
+            --rose-500: #f43f5e;
+            --blue-50: #eff6ff; --blue-100: #dbeafe;
+        }
+
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: var(--slate-100); color: var(--slate-900); overflow: hidden; -webkit-font-smoothing: antialiased; display: flex; height: 100vh; width: 100vw; }
+        a { text-decoration: none; color: inherit; }
+        button { cursor: pointer; border: none; background: none; font-family: inherit; outline: none; }
+        .hidden { display: none !important; }
+
+        .custom-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: var(--slate-300); border-radius: 10px; }
+        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .animate-spin { animation: spin 1s linear infinite; }
+        @keyframes pulse { 50% { opacity: 0.5; } }
+        .animate-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        
+        .fade-in { animation: fadeIn 0.3s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        #toast-container { position: fixed; top: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 12px; pointer-events: none; }
+        .toast { display: flex; align-items: center; gap: 12px; padding: 14px 20px; border-radius: 0.375rem; font-size: 13px; font-weight: 700; color: white; opacity: 0; transform: translateY(20px); transition: all 0.2s cubic-bezier(0.68, -0.55, 0.265, 1.55); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); max-width: 350px; line-height: 1.4; pointer-events: auto; }
+        .toast.show { opacity: 1; transform: translateY(0); }
+        .toast.success { background-color: var(--slate-800); }
+        .toast.error { background-color: var(--rose-500); }
+        .toast.warning { background-color: var(--slate-600); }
+        .toast svg { width: 1.25rem; height: 1.25rem; flex-shrink: 0; }
+
+        /* =========================================
+           UI OTENTIKASI (LOGIN & REGISTER)
+           ========================================= */
+        #auth-screen {
+            position: fixed; inset: 0; z-index: 100; background-color: var(--slate-50);
+            display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1rem; overflow: hidden;
+        }
+        .bg-orb { position: absolute; width: 24rem; height: 24rem; border-radius: 50%; filter: blur(120px); opacity: 0.4; pointer-events: none; mix-blend-mode: multiply; }
+        .bg-orb-1 { top: -10%; left: -10%; background-color: #e0f2fe; }
+        .bg-orb-2 { bottom: -10%; right: -10%; background-color: #bae6fd; }
+
+        .auth-logo-wrapper { margin-bottom: 2rem; position: relative; z-index: 10; text-align: center; display: flex; justify-content: center; }
+        .auth-logo-wrapper img { max-height: 75px; object-fit: contain; }
+
+        .auth-card {
+            background-color: #ffffff; padding: 2.5rem; border-radius: 0.5rem; width: 100%; max-width: 28rem; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1); border: 1px solid var(--slate-200); position: relative; z-index: 10; transition: all 0.3s ease;
+        }
+        .auth-title { font-size: 1.75rem; font-weight: 900; color: var(--slate-800); text-align: center; text-transform: uppercase; letter-spacing: -0.05em; margin: 0; }
+        .auth-title .highlight { color: var(--brand-blue); }
+
+        .auth-form-group { margin-bottom: 1.25rem; text-align: left; }
+        
+        .auth-input-wrapper { position: relative; }
+        .auth-input-icon { position: absolute; top: 50%; transform: translateY(-50%); left: 1rem; color: var(--slate-400); pointer-events: none; display: flex; align-items: center; }
+        .auth-input-icon svg { width: 1.25rem; height: 1.25rem; }
+
+        .auth-input-field {
+            width: 100%; padding: 0.875rem 3rem 0.875rem 3rem; background-color: #f4f7f9; border-radius: 0.375rem; border: 1px solid var(--slate-200); outline: none; font-weight: 600; color: var(--slate-800); transition: all 0.2s ease; font-family: inherit; font-size: 0.875rem;
+        }
+        .auth-input-field::placeholder { color: var(--slate-400); font-weight: 500; }
+        .auth-input-field:focus { border-color: var(--brand-blue); box-shadow: 0 0 0 3px #e0f2fe; background-color: white; }
+        
+        input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+
+        .auth-toggle-password {
+            position: absolute; top: 50%; right: 1rem; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--slate-400); display: flex; align-items: center; justify-content: center; padding: 0; transition: color 0.2s ease;
+        }
+        .auth-toggle-password:hover { color: var(--brand-blue); }
+        .auth-toggle-password svg { width: 1.25rem; height: 1.25rem; }
+
+        .auth-btn {
+            width: 100%; margin-top: 1.5rem; padding: 1rem; border-radius: 0.375rem; font-weight: 800; font-size: 0.875rem; display: flex; justify-content: center; align-items: center; gap: 0.5rem; transition: all 0.2s ease; cursor: pointer; border: none; font-family: inherit;
+        }
+        .auth-btn svg { width: 1.25rem; height: 1.25rem; }
+        .auth-btn-primary { background-color: var(--brand-blue); color: white; }
+        .auth-btn-primary:hover { background-color: var(--brand-blue-hover); }
+        .auth-btn-dark { background-color: var(--slate-800); color: white; }
+        .auth-btn-dark:hover { background-color: var(--slate-900); }
+
+        .auth-bottom-card {
+            background-color: #f8fafc; padding: 1.5rem; border-radius: 0.5rem; width: 100%; max-width: 28rem; border: 1px solid var(--slate-200); margin-top: 1rem; position: relative; z-index: 10;
+        }
+        .auth-bottom-card-text { text-align: center; font-size: 0.875rem; font-weight: 500; color: var(--slate-600); }
+        
+        .auth-toggle-link { color: var(--brand-blue); text-transform: capitalize; margin-left: 0.25rem; text-decoration: none; background: none; border: none; cursor: pointer; font-weight: 700; transition: color 0.2s ease; font-family: inherit; }
+        .auth-toggle-link:hover { color: var(--brand-blue-hover); text-decoration: underline; }
+
+        /* =========================================
+           UI DASHBOARD MEMBER AREA
+           ========================================= */
+        #member-screen { display: none; height: 100vh; width: 100vw; }
+
+        .sidebar { width: 250px; background: white; color: var(--slate-600); border-right: 1px solid var(--slate-200); display: flex; flex-direction: column; height: 100%; flex-shrink: 0; transition: transform 0.3s ease-in-out; position: relative; z-index: 50; }
+        .sidebar-header { padding: 1.25rem 1.5rem; font-size: 1.25rem; font-weight: 800; color: var(--slate-900); border-bottom: 1px solid var(--slate-200); display: flex; justify-content: space-between; align-items: center; }
+        .sidebar-brand { display: flex; align-items: center; gap: 0.5rem; }
+        .sidebar-brand svg { width: 1.5rem; height: 1.5rem; color: var(--brand-blue); }
+        .sidebar-close { display: none; color: var(--slate-500); transition: color 0.2s; }
+        .sidebar-close:hover { color: var(--slate-800); }
+        
+        .sidebar-nav { padding: 1rem 1.25rem; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 0.15rem; }
+        
+        .nav-category { font-size: 0.6875rem; font-weight: 800; color: var(--slate-400); text-transform: uppercase; letter-spacing: 0.1em; padding: 1rem 0.875rem 0.5rem; }
+        
+        .nav-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 0.875rem; font-weight: 600; font-size: 0.875rem; border-radius: 0.375rem; transition: all 0.2s; width: 100%; text-align: left; }
+        .nav-item svg { width: 1.15rem; height: 1.15rem; }
+        
+        .nav-item.active { background: var(--blue-50); color: var(--brand-blue); font-weight: 800; }
+        .nav-item.default { color: var(--slate-600); }
+        .nav-item.default:hover { background: var(--slate-50); color: var(--brand-blue); }
+        
+        .sidebar-footer { padding: 1.25rem 1.5rem; border-top: 1px solid var(--slate-200); }
+        .sidebar-logout { display: flex; align-items: center; gap: 0.6rem; font-size: 0.75rem; font-weight: 700; color: var(--slate-500); transition: color 0.2s; cursor: pointer; border: none; background: none; width: 100%; text-align: left; }
+        .sidebar-logout:hover { color: var(--rose-600); }
+
+        .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); z-index: 40; transition: opacity 0.3s; backdrop-filter: blur(2px); }
+
+        @media (max-width: 768px) {
+            .sidebar { position: fixed; transform: translateX(-100%); border-right: none; }
+            .sidebar.open { transform: translateX(0); }
+            .sidebar-close { display: block; }
+            .sidebar-overlay.open { display: block; }
+        }
+
+        .main-wrapper { flex: 1; display: flex; flex-direction: column; height: 100%; overflow: hidden; position: relative; }
+        
+        .top-header { background: white; border-bottom: 1px solid var(--slate-200); padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 30; margin: -1.5rem -1.5rem 1.5rem -1.5rem; }
+        @media (min-width: 768px) { .top-header { padding: 1.25rem 2rem; margin: -2rem -2rem 2rem -2rem; } }
+        
+        .header-left { display: flex; align-items: center; gap: 1rem; }
+        .btn-menu { display: none; padding: 0.5rem; background: white; border: 1px solid var(--slate-300); border-radius: 0.375rem; color: var(--slate-600); }
+        .btn-menu:hover { background: var(--slate-50); }
+        @media (max-width: 768px) { .btn-menu { display: block; } }
+        .header-title { font-size: 1.125rem; font-weight: 800; color: var(--slate-800); }
+        
+        .header-right { display: flex; align-items: center; gap: 1rem; }
+        .header-greeting { text-align: right; display: none; }
+        @media (min-width: 640px) { .header-greeting { display: block; } }
+        .header-greeting-sub { font-size: 0.625rem; font-weight: 700; color: var(--slate-500); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.125rem; }
+        .header-greeting-name { font-size: 0.875rem; font-weight: 800; color: var(--slate-800); line-height: 1; }
+        
+        .header-avatar { width: 2rem; height: 2rem; background: var(--brand-blue); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; }
+        .header-avatar svg { width: 1.125rem; height: 1.125rem; }
+        
+        .btn-refresh { padding: 0.5rem; color: var(--slate-400); transition: all 0.2s; display: flex; align-items: center; justify-content: center; }
+        .btn-refresh:hover { color: var(--brand-blue); }
+        .btn-refresh svg { width: 1.125rem; height: 1.125rem; }
+
+        .dashboard-body { flex: 1; overflow-y: auto; padding: 1.5rem; padding-bottom: 5rem; }
+        @media (min-width: 768px) { .dashboard-body { padding: 2rem; } }
+        .dashboard-body.no-pad { padding: 0; overflow: hidden; }
+        #frame-member-page { width: 100%; height: 100%; border: none; display: block; }
+        .dashboard-container { max-width: 72rem; margin: 0 auto; display: flex; flex-direction: column; gap: 1.5rem; }
+
+        .stat-grid-4 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-bottom: 1.5rem; }
+        @media (min-width: 1024px) { .stat-grid-4 { grid-template-columns: repeat(4, 1fr); gap: 1.5rem; } }
+        
+        .stat-box { background: white; border-radius: 0.5rem; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border: 1px solid var(--slate-200); text-align: center; }
+        .stat-box-header { padding: 0.75rem; color: white; font-weight: 700; font-size: 0.875rem; }
+        .stat-box-body { padding: 1.25rem; font-size: 1.25rem; font-weight: 800; color: var(--slate-800); }
+        
+        .bg-orange { background-color: #ff7a00; }
+        .bg-green { background-color: #16a34a; }
+        .bg-darkblue { background-color: #1e3a8a; }
+        .bg-lightgreen { background-color: #22c55e; }
+
+        .section-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; padding-bottom: 0.75rem; }
+        .section-header svg { width: 1.25rem; height: 1.25rem; color: var(--slate-800); }
+        .section-title { font-size: 1.125rem; font-weight: 800; color: var(--slate-800); letter-spacing: 0.05em; }
+
+        .card { background: white; padding: 1.5rem; border-radius: 0.5rem; border: 1px solid var(--slate-200); box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        
+        /* Tables */
+        .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .data-table { width: 100%; border-collapse: collapse; min-width: 600px; text-align: left; }
+        .data-table th { padding: 1rem 1.5rem; font-size: 0.6875rem; font-weight: 800; color: var(--slate-500); text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--slate-200); background: white; }
+        .data-table td { padding: 1rem 1.5rem; font-size: 0.875rem; border-bottom: 1px solid var(--slate-100); color: var(--slate-600); }
+        .data-table tr:last-child td { border-bottom: none; }
+        .data-table tr:hover td { background-color: var(--slate-50); }
+        
+        .badge-status { padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-size: 0.625rem; font-weight: 700; text-transform: uppercase; display: inline-block; border: 1px solid transparent; }
+        .badge-lunas { background: var(--brand-blue); color: white; }
+        .badge-pending { background: var(--slate-100); color: var(--slate-700); border-color: var(--slate-300); }
+        .badge-expired { background: var(--slate-50); color: var(--slate-400); border-color: var(--slate-200); text-decoration: line-through; }
+
+        /* 🔥 GRID KATALOG LEBIH KECIL (4 PER BARIS) 🔥 */
+        .grid-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; }
+        @media (min-width: 640px) { .grid-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; } }
+        @media (min-width: 1024px) { .grid-cards { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1.25rem; } }
+        @media (min-width: 1280px) { .grid-cards { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 1.25rem; } }
+
+        /* MATERI SAYA CARD (Rata Atas Bawah) */
+        .prod-card { background: white; padding: 1.5rem; border-radius: 0.5rem; border: 1px solid var(--slate-200); box-shadow: 0 1px 2px rgba(0,0,0,0.05); display: flex; flex-direction: column; height: 100%; transition: all 0.2s; }
+        .prod-card:hover { box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); transform: translateY(-2px); border-color: var(--slate-300); }
+        
+        .card-badge-wrap { margin-bottom: 1.25rem; }
+        .card-badge { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.25rem 0.75rem; border-radius: 0.25rem; font-size: 0.625rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; border: 1px solid var(--slate-200); }
+        .card-badge.owned { background: var(--blue-50); color: var(--brand-blue); border-color: var(--blue-100); }
+        .card-badge.avail { background: var(--slate-800); color: white; border-color: var(--slate-900); }
+        .card-badge svg { width: 0.75rem; height: 0.75rem; }
+        
+        .card-title { font-size: 1rem; font-weight: 800; color: var(--slate-900); margin-bottom: 0.5rem; line-height: 1.3; }
+        .card-desc { font-size: 0.75rem; color: var(--slate-500); margin-bottom: 0.75rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.5; }
+        .card-price { font-size: 1rem; font-weight: 800; color: var(--slate-900); margin-bottom: 1rem; }
+
+        .card-actions { border-top: 1px solid var(--slate-100); padding-top: 0.75rem; display: flex; flex-direction: column; gap: 0.5rem; }
+        .action-row { display: flex; gap: 0.5rem; }
+        
+        .btn-main { flex: 1; background: var(--slate-800); color: white; padding: 0.625rem 1rem; border-radius: 0.375rem; font-weight: 700; font-size: 0.625rem; text-transform: uppercase; letter-spacing: 0.1em; display: flex; justify-content: center; align-items: center; gap: 0.5rem; transition: background 0.2s; border: none; }
+        .btn-main:hover { background: var(--slate-900); }
+        .btn-main.primary { background: var(--brand-blue); }
+        .btn-main.primary:hover { background: var(--brand-blue-hover); }
+        .btn-main svg { width: 1rem; height: 1rem; }
+        .btn-main.icon-only { position: relative; }
+        .btn-main.icon-only::after { content: attr(data-tooltip); position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%); background: var(--slate-800); color: white; padding: 0.2rem 0.5rem; border-radius: 0.25rem; font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity 0.15s; z-index: 10; }
+        .btn-main.icon-only:hover::after { opacity: 1; }
+
+        .btn-icon { background: white; border: 1px solid var(--slate-200); color: var(--slate-600); padding: 0.625rem 1rem; border-radius: 0.375rem; transition: all 0.2s; display: flex; align-items: center; justify-content: center; }
+        .btn-icon:hover { background: var(--slate-50); color: var(--brand-blue); border-color: var(--brand-blue); }
+        .btn-icon svg { width: 1rem; height: 1rem; }
+
+        .btn-bump { background: var(--brand-orange); color: white; padding: 0.625rem 1rem; border-radius: 0.375rem; font-weight: 700; font-size: 0.625rem; text-transform: uppercase; letter-spacing: 0.1em; display: flex; justify-content: center; align-items: center; gap: 0.5rem; transition: background 0.2s; width: 100%; border: none; }
+        .btn-bump:hover { background: var(--brand-orange-hover); }
+        .btn-bump svg { width: 1rem; height: 1rem; }
+
+        /* =========================================
+           KATALOG - SEARCH & FILTER
+           ========================================= */
+        .katalog-toolbar { display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1.25rem; }
+
+        .toolbar-row { display: flex; align-items: center; gap: 0.5rem; }
+        .toolbar-row .katalog-search-wrap { flex: 1; }
+
+        .layout-toggle { display: flex; gap: 0.25rem; flex-shrink: 0; }
+        .layout-btn { background: white; border: 1px solid var(--slate-200); border-radius: 0.375rem; padding: 0.5rem; cursor: pointer; color: var(--slate-400); transition: all 0.2s; display: flex; align-items: center; justify-content: center; }
+        .layout-btn.active { background: var(--brand-blue); border-color: var(--brand-blue); color: white; }
+        .layout-btn svg { width: 1rem; height: 1rem; }
+        @media (min-width: 640px) { .layout-toggle { display: none; } }
+
+        @media (max-width: 639px) {
+            #list-owned.layout-1col { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+            #list-owned.layout-2col { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
+
+        .katalog-search-wrap { display: flex; align-items: center; background: white; border: 1px solid var(--slate-200); border-radius: 0.5rem; padding: 0.6rem 1rem; transition: all 0.2s; }
+        .katalog-search-wrap:focus-within { border-color: var(--brand-blue); box-shadow: 0 0 0 3px #e0f2fe; }
+        .katalog-search-wrap svg { color: var(--slate-400); width: 1rem; height: 1rem; flex-shrink: 0; pointer-events: none; }
+        .katalog-search-wrap input { flex: 1; border: none; outline: none; font-size: 0.875rem; font-weight: 500; color: var(--slate-800); margin-left: 0.625rem; font-family: inherit; background: transparent; }
+        .katalog-search-wrap input::placeholder { color: var(--slate-400); }
+
+        .cat-filter-scroll { display: flex; gap: 0.5rem; overflow-x: auto; padding-bottom: 0.25rem; scrollbar-width: none; }
+        .cat-filter-scroll::-webkit-scrollbar { display: none; }
+        .cat-filter-btn { background: white; color: var(--slate-500); border: 1px solid var(--slate-200); padding: 0.35rem 1rem; border-radius: 99px; font-size: 0.75rem; font-weight: 600; white-space: nowrap; transition: all 0.2s; cursor: pointer; font-family: inherit; }
+        .cat-filter-btn:hover { border-color: var(--brand-blue); color: var(--brand-blue); }
+        .cat-filter-btn.active { background: var(--brand-blue); color: white; border-color: var(--brand-blue); }
+
+        /* =========================================
+           KATALOG CARD KECIL (MIRIP HOMEPAGE)
+           ========================================= */
+        .katalog-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
+        @media (min-width: 640px) { .katalog-grid { grid-template-columns: repeat(3, 1fr); gap: 1rem; } }
+        @media (min-width: 1024px) { .katalog-grid { grid-template-columns: repeat(4, 1fr); gap: 1.25rem; } }
+
+        .kat-card { background: white; border-radius: 0.75rem; display: flex; flex-direction: column; overflow: hidden; transition: all 0.3s cubic-bezier(0.4,0,0.2,1); border: 1px solid var(--slate-200); box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+        .kat-card:hover { transform: translateY(-5px); border-color: var(--brand-blue); box-shadow: 0 12px 24px -8px rgba(0,170,231,0.15); }
+
+        .kat-img-wrap { width: 100%; aspect-ratio: 4/3; background: var(--slate-100); position: relative; overflow: hidden; border-bottom: 1px solid var(--slate-100); }
+        .kat-img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease; }
+        .kat-card:hover .kat-img { transform: scale(1.06); }
+
+        .kat-badge { position: absolute; top: 8px; left: 8px; background: rgba(255,255,255,0.92); backdrop-filter: blur(4px); color: var(--brand-blue); padding: 3px 8px; border-radius: 99px; font-size: 0.55rem; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; z-index: 2; }
+        @media (min-width: 640px) { .kat-badge { padding: 4px 10px; font-size: 0.6rem; } }
+
+        .kat-body { padding: 0.65rem; display: flex; flex-direction: column; flex-grow: 1; }
+        @media (min-width: 640px) { .kat-body { padding: 0.875rem; } }
+
+        .kat-title { font-size: 0.8rem; font-weight: 800; color: var(--slate-900); line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 0.25rem; }
+        @media (min-width: 640px) { .kat-title { font-size: 0.875rem; } }
+
+        .kat-desc { font-size: 0.7rem; color: var(--slate-500); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.5; margin-bottom: 0.5rem; flex-grow: 1; }
+
+        .kat-footer { display: flex; align-items: center; justify-content: space-between; padding-top: 0.5rem; border-top: 1px solid var(--slate-100); margin-top: auto; gap: 0.25rem; }
+        .kat-price { font-size: 0.8rem; font-weight: 900; color: var(--brand-blue); letter-spacing: -0.025em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 1; }
+        @media (min-width: 640px) { .kat-price { font-size: 0.875rem; } }
+
+        .kat-actions { display: flex; gap: 0.25rem; align-items: center; flex-shrink: 0; }
+        .kat-btn-share { width: 1.75rem; height: 1.75rem; border-radius: 50%; border: 1px solid var(--slate-200); color: var(--slate-500); background: white; display: flex; align-items: center; justify-content: center; transition: all 0.2s; cursor: pointer; }
+        .kat-btn-share:hover { border-color: var(--brand-blue); color: var(--brand-blue); background: var(--blue-50); }
+        .kat-btn-share svg { width: 0.75rem; height: 0.75rem; pointer-events: none; }
+        .kat-btn-beli { background: var(--brand-orange); color: white; padding: 0.35rem 0.6rem; border-radius: 0.375rem; font-size: 0.6rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; transition: all 0.2s; white-space: nowrap; border: none; font-family: inherit; display: inline-flex; align-items: center; justify-content: center; }
+        .kat-btn-beli:hover { background: var(--brand-orange-hover); }
+        @media (min-width: 640px) { .kat-btn-beli { padding: 0.4rem 0.75rem; font-size: 0.65rem; } }
+
+        .empty-state { grid-column: 1 / -1; background: white; border: 1px dashed var(--slate-300); padding: 2.5rem; border-radius: 0.5rem; text-align: center; }
+        .empty-icon { width: 3rem; height: 3rem; background: var(--slate-100); color: var(--slate-400); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; }
+        .empty-icon svg { width: 1.5rem; height: 1.5rem; }
+        .empty-text { color: var(--slate-500); font-weight: 600; font-size: 0.875rem; }
+
+        .dash-footer { margin-top: 4rem; text-align: center; border-top: 1px solid var(--slate-200); padding: 2rem; max-width: 72rem; margin-inline: auto; }
+        .dash-footer p { font-size: 0.625rem; font-weight: 700; color: var(--slate-400); text-transform: uppercase; letter-spacing: 0.1em; }
+
+        /* =========================================
+           MODALS
+           ========================================= */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); z-index: 110; display: flex; align-items: center; justify-content: center; padding: 1rem; backdrop-filter: blur(2px); transition: opacity 0.3s; }
+        .modal-card { background: white; border-radius: 0.75rem; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); width: 100%; max-width: 28rem; padding: 2rem; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); border: 1px solid var(--slate-200); position: relative; overflow: hidden; }
+        
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; position: relative; z-index: 10; }
+        .modal-title { font-size: 1.25rem; font-weight: 900; color: var(--brand-blue); text-transform: uppercase; letter-spacing: -0.025em; }
+        .btn-close { color: var(--slate-400); padding: 0.25rem; border-radius: 0.25rem; transition: all 0.2s; display: flex; align-items: center; justify-content: center; background: white; border: 1px solid transparent; cursor: pointer; }
+        .btn-close:hover { background: var(--rose-50); color: var(--rose-500); border-color: var(--rose-200); transform: rotate(90deg); }
+        .btn-close svg { width: 1.25rem; height: 1.25rem; pointer-events: none;}
+
+        .modal-form-group { margin-bottom: 1rem; }
+        .modal-form-label { display: block; font-size: 0.6875rem; font-weight: 700; color: var(--slate-600); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; }
+        .modal-form-input { width: 100%; background: white; border: 1px solid var(--slate-300); color: var(--slate-900); border-radius: 0.375rem; padding: 0.75rem 1rem; font-size: 0.875rem; outline: none; transition: all 0.2s; }
+        .modal-form-input:focus { border-color: var(--brand-blue); box-shadow: 0 0 0 2px var(--blue-50); }
+        
+        .modal-actions { display: flex; gap: 0.75rem; margin-top: 1.5rem; }
+        .btn-modal-cancel { flex: 1; background: white; border: 1px solid var(--slate-300); color: var(--slate-600); padding: 0.75rem 1rem; border-radius: 0.375rem; font-weight: 700; font-size: 0.625rem; text-transform: uppercase; letter-spacing: 0.1em; transition: all 0.2s; }
+        .btn-modal-cancel:hover { background: var(--slate-50); color: var(--slate-900); }
+        .btn-modal-save { flex: 1; background: var(--slate-800); border: 1px solid var(--slate-900); color: white; padding: 0.75rem 1rem; border-radius: 0.375rem; font-weight: 700; font-size: 0.625rem; text-transform: uppercase; letter-spacing: 0.1em; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
+        .btn-modal-save:hover { background: var(--slate-900); }
+        .btn-modal-save svg { width: 1rem; height: 1rem; }
+
+        .modal-desc { font-size: 0.875rem; color: var(--slate-500); margin-bottom: 1.5rem; font-weight: 500; line-height: 1.5; }
+
+        .aff-link-box { background: white; border: 1px solid var(--slate-200); border-radius: 0.5rem; padding: 1.25rem; margin-bottom: 1rem; position: relative; overflow: hidden; transition: all 0.2s; }
+        .aff-link-box:hover { border-color: var(--brand-blue); box-shadow: 0 4px 12px -2px rgba(0, 170, 231, 0.15); transform: translateY(-2px); }
+        
+        .aff-link-box.theme-orange { border-left: 4px solid var(--brand-orange); }
+        .aff-link-box.theme-orange .btn-copy { background: var(--brand-orange); color: white; border: none; box-shadow: 0 4px 6px -1px rgba(255, 152, 0, 0.3); }
+        .aff-link-box.theme-orange .btn-copy:hover { background: var(--brand-orange-hover); }
+        .aff-link-box.theme-orange .aff-link-icon { color: var(--brand-orange); background: #fff7ed; padding: 0.5rem; border-radius: 0.5rem; }
+        
+        .aff-link-box.theme-blue { border-left: 4px solid var(--brand-blue); }
+        .aff-link-box.theme-blue .btn-copy { background: var(--brand-blue); color: white; border: none; box-shadow: 0 4px 6px -1px rgba(0, 170, 231, 0.3); }
+        .aff-link-box.theme-blue .btn-copy:hover { background: var(--brand-blue-hover); }
+        .aff-link-box.theme-blue .aff-link-icon { color: var(--brand-blue); background: var(--blue-50); padding: 0.5rem; border-radius: 0.5rem; }
+
+        .aff-link-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+        .aff-link-title { font-weight: 800; color: var(--slate-800); font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.05em; }
+        
+        .btn-copy { width: 100%; padding: 0.75rem 1rem; border-radius: 0.375rem; font-weight: 800; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 0.5rem; cursor: pointer; }
+        .btn-copy svg { width: 1rem; height: 1rem; pointer-events: none; }
+
+        /* =========================================
+           PROFIL SAYA
+           ========================================= */
+        .profil-card { background: white; border-radius: 0.5rem; border: 1px solid var(--slate-200); box-shadow: 0 1px 2px rgba(0,0,0,0.05); overflow: hidden; }
+        .profil-card-header { padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--slate-100); background: var(--slate-50); display: flex; align-items: center; gap: 0.75rem; }
+        .profil-card-header svg { width: 1.125rem; height: 1.125rem; color: var(--brand-blue); }
+        .profil-card-header-title { font-size: 0.875rem; font-weight: 800; color: var(--slate-700); text-transform: uppercase; letter-spacing: 0.05em; }
+        .profil-card-body { padding: 1.5rem; }
+        .profil-form-grid { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+        @media (min-width: 640px) { .profil-form-grid { grid-template-columns: 1fr 1fr; } }
+        .profil-form-group { display: flex; flex-direction: column; gap: 0.375rem; }
+        .profil-form-group.full-col { grid-column: 1 / -1; }
+        .profil-form-label { font-size: 0.6875rem; font-weight: 700; color: var(--slate-500); text-transform: uppercase; letter-spacing: 0.05em; }
+        .profil-input-wrap { position: relative; display: flex; align-items: center; }
+        .profil-input-icon { position: absolute; left: 0.875rem; color: var(--slate-400); display: flex; pointer-events: none; }
+        .profil-input-icon svg { width: 1rem; height: 1rem; }
+        .profil-form-input { width: 100%; padding: 0.75rem 1rem 0.75rem 2.5rem; background: var(--slate-50); border: 1px solid var(--slate-200); border-radius: 0.375rem; font-size: 0.875rem; font-weight: 600; color: var(--slate-800); outline: none; transition: all 0.2s; font-family: inherit; }
+        .profil-form-input::placeholder { color: var(--slate-400); font-weight: 500; }
+        .profil-form-input:focus { border-color: var(--brand-blue); box-shadow: 0 0 0 3px #e0f2fe; background: white; }
+        .profil-form-input.no-icon { padding-left: 1rem; }
+        .profil-form-textarea { width: 100%; padding: 0.75rem 1rem; background: var(--slate-50); border: 1px solid var(--slate-200); border-radius: 0.375rem; font-size: 0.875rem; font-weight: 600; color: var(--slate-800); outline: none; transition: all 0.2s; font-family: inherit; resize: vertical; min-height: 80px; }
+        .profil-form-textarea::placeholder { color: var(--slate-400); font-weight: 500; }
+        .profil-form-textarea:focus { border-color: var(--brand-blue); box-shadow: 0 0 0 3px #e0f2fe; background: white; }
+        .profil-section-divider { grid-column: 1 / -1; border: none; border-top: 1px solid var(--slate-100); margin: 0.25rem 0; }
+        .profil-section-label { grid-column: 1 / -1; font-size: 0.6875rem; font-weight: 800; color: var(--slate-400); text-transform: uppercase; letter-spacing: 0.1em; margin-top: 0.25rem; }
+        .profil-save-btn { background: var(--brand-blue); color: white; padding: 0.875rem 2rem; border-radius: 0.375rem; font-weight: 800; font-size: 0.875rem; display: flex; align-items: center; gap: 0.5rem; transition: all 0.2s; border: none; font-family: inherit; cursor: pointer; }
+        .profil-save-btn:hover { background: var(--brand-blue-hover); }
+        .profil-save-btn svg { width: 1rem; height: 1rem; }
+        .profil-save-row { padding: 1rem 1.5rem; border-top: 1px solid var(--slate-100); display: flex; justify-content: flex-end; }
+    </style>
+</head>
+<body>
+
+    <div id="toast-container"></div>
+
+    <div id="auth-screen">
+        <div class="bg-orb bg-orb-1"></div>
+        <div class="bg-orb bg-orb-2"></div>
+
+        <div class="auth-logo-wrapper">
+            <img id="auth-logo" src="" alt="Site Logo" class="hidden">
+            <h1 id="auth-logo-text" class="auth-title">
+                <span class="dyn-site-name highlight">MEMBER</span> AREA
+            </h1>
+        </div>
+
+        <div class="auth-card">
+            <div id="view-login" class="fade-in">
+                <form id="form-login">
+                    <div class="auth-form-group">
+                        <div class="auth-input-wrapper">
+                            <div class="auth-input-icon"><i data-lucide="mail"></i></div>
+                            <input type="email" id="email" class="auth-input-field" placeholder="Alamat Email" required>
+                        </div>
+                    </div>
+                    
+                    <div class="auth-form-group">
+                        <div class="auth-input-wrapper">
+                            <div class="auth-input-icon"><i data-lucide="lock"></i></div>
+                            <input type="password" id="pass" class="auth-input-field" placeholder="Password" required>
+                            <button type="button" class="auth-toggle-password" onclick="togglePasswordVisibility('pass', this)">
+                                <i data-lucide="eye-off"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" id="btn-login" class="auth-btn auth-btn-primary">
+                        Login
+                    </button>
+                </form>
+            </div>
+
+            <div id="view-register" class="hidden">
+                <form id="form-register">
+                    <div class="auth-form-group">
+                        <div class="auth-input-wrapper">
+                            <div class="auth-input-icon"><i data-lucide="user"></i></div>
+                            <input type="text" id="reg-nama" class="auth-input-field" placeholder="Nama Lengkap" required>
+                        </div>
+                    </div>
+                    
+                    <div class="auth-form-group">
+                        <div class="auth-input-wrapper">
+                            <div class="auth-input-icon"><i data-lucide="mail"></i></div>
+                            <input type="email" id="reg-email" class="auth-input-field" placeholder="Alamat Email" required>
+                        </div>
+                    </div>
+                    
+                    <div class="auth-form-group">
+                        <div class="auth-input-wrapper">
+                            <div class="auth-input-icon"><i data-lucide="phone"></i></div>
+                            <input type="number" id="reg-wa" class="auth-input-field" placeholder="Nomor WhatsApp" required>
+                        </div>
+                    </div>
+                    
+                    <div class="auth-form-group">
+                        <div class="auth-input-wrapper">
+                            <div class="auth-input-icon"><i data-lucide="lock"></i></div>
+                            <input type="password" id="reg-pass" class="auth-input-field" placeholder="Buat Password" minlength="6" required>
+                            <button type="button" class="auth-toggle-password" onclick="togglePasswordVisibility('reg-pass', this)">
+                                <i data-lucide="eye-off"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" id="btn-register" class="auth-btn auth-btn-dark">
+                        Buat Akun Member
+                    </button>
+                </form>
+            </div>
+        </div>
+        
+        <div class="auth-bottom-card">
+            <div id="login-links" class="auth-bottom-card-text">
+                <div>Belum punya akun? <button type="button" onclick="toggleAuthView('register')" class="auth-toggle-link">Register</button></div>
+                <div style="margin-top: 0.5rem;">Lupa password? <button type="button" onclick="openLupaPasswordModal()" class="auth-toggle-link">Reset Password</button></div>
+            </div>
+            
+            <div id="register-links" class="auth-bottom-card-text hidden">
+                <div>Sudah punya akun? <button type="button" onclick="toggleAuthView('login')" class="auth-toggle-link">Login Di Sini</button></div>
+            </div>
+        </div>
+    </div>
+
+
+    <div id="member-screen">
+        <div id="sidebar-overlay" class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+        <aside id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <span class="sidebar-brand"><i data-lucide="layers"></i> <span class="dyn-site-name">SHEETFLARE</span></span>
+                <button onclick="toggleSidebar()" class="sidebar-close"><i data-lucide="x"></i></button>
+            </div>
+            <nav class="sidebar-nav custom-scroll">
+                <a href="#" onclick="switchTab('dashboard'); return false;" id="nav-dashboard" class="nav-item active"><i data-lucide="layout-dashboard"></i> Dashboard Member</a>
+                
+                <div class="nav-category">Akses Produk</div>
+                <a href="#" onclick="switchTab('owned'); return false;" id="nav-owned" class="nav-item default"><i data-lucide="unlock"></i> Produk Saya</a>
+                <a href="#" onclick="switchTab('available'); return false;" id="nav-available" class="nav-item default"><i data-lucide="shopping-bag"></i> Katalog Produk</a>
+
+                <div class="nav-category">Affiliasi</div>
+                <a href="#" onclick="switchTab('kupon'); return false;" id="nav-kupon" class="nav-item default"><i data-lucide="ticket-percent"></i> Kupon Saya</a>
+
+                <div id="nav-category-member-pages" class="nav-category" style="display:none;">Konten Member</div>
+                <div id="nav-member-pages-list"></div>
+
+                <div class="nav-category">Pengaturan</div>
+                <a href="#" onclick="switchTab('profil'); return false;" id="nav-profil" class="nav-item default"><i data-lucide="user-circle-2"></i> Profil Saya</a>
+                <a href="#" onclick="openRekeningModal(); return false;" class="nav-item default"><i data-lucide="credit-card"></i> Atur Rekening</a>
+                <a href="#" onclick="openPasswordModal(); return false;" class="nav-item default"><i data-lucide="key-round"></i> Ganti Password</a>
+            </nav>
+            <div class="sidebar-footer">
+                <button onclick="logout()" class="sidebar-logout"><i data-lucide="log-out"></i> Keluar Akun</button>
+            </div>
+        </aside>
+
+        <main class="main-wrapper">
+            <header class="top-header">
+                <div class="header-left">
+                    <button onclick="toggleSidebar()" class="btn-menu"><i data-lucide="menu"></i></button>
+                    <h2 class="header-title" id="header-page-title">Member Area</h2>
+                </div>
+                <div class="header-right">
+                    <div class="header-greeting">
+                        <p class="header-greeting-sub">Selamat Datang,</p>
+                        <p id="header-name" class="header-greeting-name">Member</p>
+                    </div>
+                    <div class="header-avatar"><i data-lucide="user"></i></div>
+                    <button onclick="forceSync()" class="btn-refresh" title="Refresh Data"><i data-lucide="refresh-cw"></i></button>
+                </div>
+            </header>
+
+            <div class="dashboard-body custom-scroll">
+                
+                <div id="view-dashboard" class="dashboard-container fade-in">
+                    <section>
+                        <div class="stat-grid-4">
+                            <div class="stat-box">
+                                <div class="stat-box-header bg-orange">Total Lead</div>
+                                <div class="stat-box-body" id="stat-lead">0</div>
+                            </div>
+                            <div class="stat-box">
+                                <div class="stat-box-header bg-green">Total Sales</div>
+                                <div class="stat-box-body" id="stat-sales">0</div>
+                            </div>
+                            <div class="stat-box">
+                                <div class="stat-box-header bg-darkblue">Total Omset</div>
+                                <div class="stat-box-body" id="stat-omset">Rp 0</div>
+                            </div>
+                            <div class="stat-box">
+                                <div class="stat-box-header bg-lightgreen">Total Komisi</div>
+                                <div class="stat-box-body" id="display-saldo-komisi">Rp 0</div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section>
+                        <div class="section-header">
+                            <i data-lucide="history"></i>
+                            <h2 class="section-title">Data Prospek & Penjualan</h2>
+                        </div>
+                        <div class="card" style="padding: 0; border-radius: 0.5rem; overflow: hidden;">
+                            <div class="table-responsive">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Tanggal</th>
+                                            <th>Produk/Kontak</th>
+                                            <th>Komisi</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="list-prospek">
+                                        <tr>
+                                            <td colspan="4" style="text-align: center; padding: 2rem;">
+                                                <div class="skeleton" style="height: 1.5rem; width: 60%; margin: 0 auto;"></div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+
+                <div id="view-owned" class="dashboard-container hidden fade-in">
+                    <section>
+                        <div class="section-header">
+                            <i data-lucide="unlock"></i>
+                            <h2 class="section-title">Materi Saya</h2>
+                        </div>
+                        <div class="katalog-toolbar">
+                            <div class="toolbar-row">
+                                <div class="katalog-search-wrap">
+                                    <i data-lucide="search"></i>
+                                    <input type="text" id="owned-search-input" placeholder="Cari materi..." oninput="applyOwnedSearch()">
+                                </div>
+                                <div class="layout-toggle">
+                                    <button class="layout-btn" id="btn-layout-1" onclick="setOwnedLayout(1)" title="1 kolom">
+                                        <i data-lucide="layout-list"></i>
+                                    </button>
+                                    <button class="layout-btn active" id="btn-layout-2" onclick="setOwnedLayout(2)" title="2 kolom">
+                                        <i data-lucide="layout-grid"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="list-owned" class="grid-cards layout-2col">
+                            <div class="prod-card">
+                                <div class="skeleton skel-title"></div>
+                                <div class="skeleton skel-text"></div>
+                                <div class="skeleton skel-text-short"></div>
+                                <div class="card-actions" style="border: none; padding-top: 0; margin-top: auto;">
+                                    <div class="skeleton skel-btn"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+
+                <div id="view-available" class="dashboard-container hidden fade-in">
+                    <section>
+                        <div class="section-header">
+                            <i data-lucide="shopping-bag"></i>
+                            <h2 class="section-title">Katalog Produk</h2>
+                        </div>
+                        <div class="katalog-toolbar">
+                            <div class="katalog-search-wrap">
+                                <i data-lucide="search"></i>
+                                <input type="text" id="katalog-search-input" placeholder="Cari produk..." oninput="applyKatalogFilters()">
+                            </div>
+                            <div id="katalog-cat-filter" class="cat-filter-scroll"></div>
+                        </div>
+                        <div id="list-available" class="katalog-grid">
+                            <div class="kat-card">
+                                <div class="kat-img-wrap skeleton"></div>
+                                <div class="kat-body">
+                                    <div class="skeleton skel-title"></div>
+                                    <div class="skeleton skel-text"></div>
+                                    <div class="kat-footer">
+                                        <div class="skeleton skel-price" style="margin-bottom:0; width:40%;"></div>
+                                        <div class="kat-actions">
+                                            <div class="skeleton skel-btn" style="margin-bottom:0; width:1.75rem; height:1.75rem; border-radius:50%;"></div>
+                                            <div class="skeleton skel-btn" style="margin-bottom:0; width:3.5rem; height:1.75rem; border-radius:0.375rem;"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+                
+                <div id="view-kupon" class="dashboard-container hidden fade-in">
+                    <section>
+                        <div class="section-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.75rem;">
+                            <div style="display:flex;align-items:center;gap:0.5rem;">
+                                <i data-lucide="ticket-percent"></i>
+                                <h2 class="section-title">Kupon Affiliasi Saya</h2>
+                            </div>
+                            <button type="button" onclick="openAddCouponModal()" class="btn-main primary" style="width:auto;padding:0.6rem 1.1rem;"><i data-lucide="plus"></i> Tambah Kupon</button>
+                        </div>
+                        <p style="font-size:0.85rem;color:var(--text-muted,#64748b);margin:-0.5rem 0 1rem;">Bikin kode kupon versi kamu sendiri dari kupon utama yang tersedia. Kalau ada yang beli pakai kode kamu, komisinya otomatis masuk ke akun kamu — tanpa perlu link referral.</p>
+                        <div class="card" style="padding: 0; border-radius: 0.5rem; overflow: hidden;">
+                            <div class="table-responsive">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Kode Kupon Kamu</th>
+                                            <th>Kupon Utama</th>
+                                            <th>Penggunaan</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="list-my-coupons">
+                                        <tr><td colspan="4" style="text-align: center; padding: 2rem;">
+                                            <div class="skeleton" style="height: 1.5rem; width: 60%; margin: 0 auto;"></div>
+                                        </td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+
+                <div id="view-profil" class="dashboard-container hidden fade-in">
+                    <section>
+                        <div class="section-header">
+                            <i data-lucide="user-circle-2"></i>
+                            <h2 class="section-title">Profil Saya</h2>
+                        </div>
+                        <form id="form-profil" onsubmit="saveProfileData(event)">
+                            <div class="profil-card">
+                                <div class="profil-card-header">
+                                    <i data-lucide="id-card"></i>
+                                    <span class="profil-card-header-title">Data Diri</span>
+                                </div>
+                                <div class="profil-card-body">
+                                    <div class="profil-form-grid">
+                                        <div class="profil-form-group">
+                                            <label class="profil-form-label">Nama Lengkap</label>
+                                            <div class="profil-input-wrap">
+                                                <span class="profil-input-icon"><i data-lucide="user"></i></span>
+                                                <input type="text" id="profil-nama" class="profil-form-input" placeholder="Nama lengkap Anda" required>
+                                            </div>
+                                        </div>
+                                        <div class="profil-form-group">
+                                            <label class="profil-form-label">Email</label>
+                                            <div class="profil-input-wrap">
+                                                <span class="profil-input-icon"><i data-lucide="mail"></i></span>
+                                                <input type="email" id="profil-email" class="profil-form-input" placeholder="email@contoh.com" readonly style="opacity:0.6; cursor:not-allowed;">
+                                            </div>
+                                        </div>
+                                        <div class="profil-form-group">
+                                            <label class="profil-form-label">No. HP / WhatsApp</label>
+                                            <div class="profil-input-wrap">
+                                                <span class="profil-input-icon"><i data-lucide="phone"></i></span>
+                                                <input type="tel" id="profil-no" class="profil-form-input" placeholder="08xxxxxxxxxx">
+                                            </div>
+                                        </div>
+                                        <div class="profil-form-group">
+                                            <label class="profil-form-label">Usia</label>
+                                            <div class="profil-input-wrap">
+                                                <span class="profil-input-icon"><i data-lucide="calendar"></i></span>
+                                                <input type="number" id="profil-usia" class="profil-form-input" placeholder="Contoh: 25" min="1" max="120">
+                                            </div>
+                                        </div>
+                                        <div class="profil-form-group full-col">
+                                            <label class="profil-form-label">Alamat</label>
+                                            <textarea id="profil-alamat" class="profil-form-textarea" placeholder="Alamat lengkap Anda..."></textarea>
+                                        </div>
+
+                                        <hr class="profil-section-divider">
+                                        <p class="profil-section-label">Karir & Status</p>
+
+                                        <div class="profil-form-group">
+                                            <label class="profil-form-label">Status</label>
+                                            <div class="profil-input-wrap">
+                                                <span class="profil-input-icon"><i data-lucide="briefcase"></i></span>
+                                                <input type="text" id="profil-status" class="profil-form-input" placeholder="Contoh: Mahasiswa, Karyawan, Wirausaha">
+                                            </div>
+                                        </div>
+                                        <div class="profil-form-group">
+                                            <label class="profil-form-label">Tujuan Karir</label>
+                                            <div class="profil-input-wrap">
+                                                <span class="profil-input-icon"><i data-lucide="target"></i></span>
+                                                <input type="text" id="profil-tujuan-karir" class="profil-form-input" placeholder="Contoh: Digital Marketer, Pebisnis Online">
+                                            </div>
+                                        </div>
+
+                                        <hr class="profil-section-divider">
+                                        <p class="profil-section-label">Media Sosial</p>
+
+                                        <div class="profil-form-group">
+                                            <label class="profil-form-label">Instagram</label>
+                                            <div class="profil-input-wrap">
+                                                <span class="profil-input-icon"><i data-lucide="instagram"></i></span>
+                                                <input type="text" id="profil-ig" class="profil-form-input" placeholder="@username">
+                                            </div>
+                                        </div>
+                                        <div class="profil-form-group">
+                                            <label class="profil-form-label">TikTok</label>
+                                            <div class="profil-input-wrap">
+                                                <span class="profil-input-icon"><i data-lucide="music-2"></i></span>
+                                                <input type="text" id="profil-tiktok" class="profil-form-input" placeholder="@username">
+                                            </div>
+                                        </div>
+                                        <div class="profil-form-group">
+                                            <label class="profil-form-label">Facebook</label>
+                                            <div class="profil-input-wrap">
+                                                <span class="profil-input-icon"><i data-lucide="facebook"></i></span>
+                                                <input type="text" id="profil-facebook" class="profil-form-input" placeholder="Nama atau URL profil">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="profil-save-row">
+                                    <button type="submit" id="btn-save-profil" class="profil-save-btn">
+                                        <i data-lucide="save"></i> Simpan Profil
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </section>
+                </div>
+
+                <div class="dash-footer">
+                    <p>&copy; 2026 <span class="dyn-site-name">SheetFlare</span></p>
+                </div>
+            </div>
+
+            <div id="view-member-page" class="hidden" style="flex:1;overflow:hidden;display:none;">
+                <iframe id="frame-member-page" src="" title="Halaman Member"></iframe>
+            </div>
+        </main>
+    </div> 
+
+    <div id="lupa-password-modal" class="modal-overlay hidden">
+        <div class="modal-card" id="lupa-password-modal-content" style="transform: scale(0.95); opacity: 0;">
+            <div class="modal-header">
+                <h3 class="modal-title">Lupa Password</h3>
+                <button type="button" onclick="closeLupaPasswordModal()" class="btn-close"><i data-lucide="x"></i></button>
+            </div>
+            <p class="modal-desc">Masukkan alamat email yang terdaftar. Sistem akan mengirimkan informasi password Anda ke email tersebut.</p>
+            <form onsubmit="prosesLupaPassword(event)">
+                <div class="modal-form-group">
+                    <label class="modal-form-label">Alamat Email</label>
+                    <input type="email" id="input-lupa-email" required class="modal-form-input" placeholder="nama@email.com">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" onclick="closeLupaPasswordModal()" class="btn-modal-cancel">Batal</button>
+                    <button type="submit" id="btn-submit-lupa" class="btn-modal-save">Kirim <i data-lucide="send"></i></button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <div id="rekening-modal" class="modal-overlay hidden">
+        <div class="modal-card" id="rekening-modal-content" style="transform: scale(0.95); opacity: 0;">
+            <div class="modal-header">
+                <h3 class="modal-title">Pengaturan Rekening</h3>
+                <button type="button" onclick="closeRekeningModal()" class="btn-close"><i data-lucide="x"></i></button>
+            </div>
+            <p class="modal-desc">Rekening ini digunakan admin untuk mentransfer komisi affiliate Anda.</p>
+            <form onsubmit="prosesUpdateRekening(event)">
+                <div class="modal-form-group">
+                    <label class="modal-form-label">Nama Bank / E-Wallet</label>
+                    <input type="text" id="input-nama-bank" required class="modal-form-input" placeholder="Misal: BCA / Dana / OVO">
+                </div>
+                <div class="modal-form-group">
+                    <label class="modal-form-label">Nomor Rekening</label>
+                    <input type="number" id="input-nomor-rek" required class="modal-form-input" placeholder="Masukkan angka">
+                </div>
+                <div class="modal-form-group">
+                    <label class="modal-form-label">Atas Nama (Pemilik Rekening)</label>
+                    <input type="text" id="input-atas-nama" required class="modal-form-input" placeholder="Nama sesuai buku tabungan">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" onclick="closeRekeningModal()" class="btn-modal-cancel">Batal</button>
+                    <button type="submit" id="btn-save-rekening" class="btn-modal-save">Simpan <i data-lucide="save"></i></button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="add-coupon-modal" class="modal-overlay hidden">
+        <div class="modal-card" id="add-coupon-modal-content" style="transform: scale(0.95); opacity: 0;">
+            <div class="modal-header">
+                <h3 class="modal-title">Tambah Kupon</h3>
+                <button type="button" onclick="closeAddCouponModal()" class="btn-close"><i data-lucide="x"></i></button>
+            </div>
+            <p class="modal-desc" style="background:#fffbeb;border:1px solid #fde68a;color:#92400e;padding:0.6rem 0.75rem;border-radius:0.5rem;">PERHATIAN: Kupon yang sudah kamu buat tidak bisa diubah kembali.</p>
+            <form onsubmit="prosesTambahKupon(event)">
+                <div class="modal-form-group">
+                    <label class="modal-form-label">Kupon Utama <span style="color:#e11d48;">*</span></label>
+                    <select id="input-kupon-utama" required class="modal-form-input"><option value="">Memuat...</option></select>
+                </div>
+                <div class="modal-form-group">
+                    <label class="modal-form-label">Kode Kupon Kamu <span style="color:#e11d48;">*</span></label>
+                    <input type="text" id="input-kupon-kode" required class="modal-form-input" style="text-transform:uppercase;" placeholder="Misal: NAMAKAMU50" maxlength="30">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" onclick="closeAddCouponModal()" class="btn-modal-cancel">Batal</button>
+                    <button type="submit" id="btn-save-kupon" class="btn-modal-save">Simpan <i data-lucide="save"></i></button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="password-modal" class="modal-overlay hidden">
+        <div class="modal-card" id="password-modal-content" style="transform: scale(0.95); opacity: 0;">
+            <div class="modal-header">
+                <h3 class="modal-title">Ganti Password</h3>
+                <button type="button" onclick="closePasswordModal()" class="btn-close"><i data-lucide="x"></i></button>
+            </div>
+            <form onsubmit="prosesGantiPassword(event)">
+                <div class="modal-form-group">
+                    <label class="modal-form-label">Password Lama</label>
+                    <input type="password" id="input-password-lama" required class="modal-form-input">
+                </div>
+                <div class="modal-form-group">
+                    <label class="modal-form-label">Password Baru</label>
+                    <input type="password" id="input-password-baru" required class="modal-form-input">
+                </div>
+                <div class="modal-form-group">
+                    <label class="modal-form-label">Konfirmasi Password</label>
+                    <input type="password" id="input-konfirmasi-password" required class="modal-form-input">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" onclick="closePasswordModal()" class="btn-modal-cancel">Batal</button>
+                    <button type="submit" id="btn-save-password" class="btn-modal-save">Simpan <i data-lucide="save"></i></button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="affiliate-modal" class="modal-overlay hidden">
+        <div class="modal-card" id="affiliate-modal-content" style="transform: scale(0.95); opacity: 0;">
+            <div class="modal-header">
+                <h3 class="modal-title">Salin Link Affiliate</h3>
+                <button type="button" onclick="closeAffiliateModal()" class="btn-close" title="Tutup Modal"><i data-lucide="x"></i></button>
+            </div>
+            <p class="modal-desc">Pilih link promosi yang ingin Anda bagikan. Anda akan mendapatkan komisi dari setiap penjualan.</p>
+            
+            <div style="display: flex; flex-direction: column; gap: 1rem;">
+                <div class="aff-link-box theme-orange">
+                    <div class="aff-link-header">
+                        <h4 class="aff-link-title">Link Landing Page</h4>
+                        <div class="aff-link-icon"><i data-lucide="layout-template"></i></div>
+                    </div>
+                    <button type="button" onclick="copySpecificLink('lp')" class="btn-copy">Salin Link <i data-lucide="copy"></i></button>
+                </div>
+                <div class="aff-link-box theme-blue">
+                    <div class="aff-link-header">
+                        <h4 class="aff-link-title">Link Checkout Instan</h4>
+                        <div class="aff-link-icon"><i data-lucide="shopping-cart"></i></div>
+                    </div>
+                    <button type="button" onclick="copySpecificLink('checkout')" class="btn-copy">Salin Link <i data-lucide="copy"></i></button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        (function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const ref = urlParams.get('ref');
+            if(ref) localStorage.setItem('melimpah_affiliate', ref); 
+        })();
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container'); const toast = document.createElement('div'); toast.className = `toast ${type}`;
+            let icon = type === 'error' ? 'x-circle' : (type === 'warning' ? 'alert-triangle' : 'check-circle');
+            toast.innerHTML = `<i data-lucide="${icon}"></i> <span>${message}</span>`;
+            container.appendChild(toast); lucide.createIcons({ root: toast });
+            setTimeout(() => toast.classList.add('show'), 10);
+            setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 300); }, 3000);
+        }
+
+        window.tempAffiliateData = { lp_url: '', checkout_url: '' };
+
+        // State untuk katalog filter
+        let _katalogAllProducts = [];
+        let _katalogCatFilter = 'ALL';
+        let _katalogCategories = [];
+        let _ownedAllProducts = [];
+
+        function setOwnedLayout(cols) {
+            const grid = document.getElementById('list-owned');
+            const btn1 = document.getElementById('btn-layout-1');
+            const btn2 = document.getElementById('btn-layout-2');
+            if (!grid) return;
+            if (cols === 1) {
+                grid.classList.replace('layout-2col', 'layout-1col');
+                btn1.classList.add('active');
+                btn2.classList.remove('active');
+            } else {
+                grid.classList.replace('layout-1col', 'layout-2col');
+                btn2.classList.add('active');
+                btn1.classList.remove('active');
+            }
+            localStorage.setItem('owned_layout_cols', cols);
+        }
+
+        (function initOwnedLayout() {
+            const saved = localStorage.getItem('owned_layout_cols');
+            if (saved === '1') {
+                document.addEventListener('DOMContentLoaded', () => setOwnedLayout(1));
+            }
+        })();
+
+        function buildBumpBtnHTML(p) {
+            const items = Array.isArray(p.bump_access_list) && p.bump_access_list.length
+                ? p.bump_access_list
+                : (p.bump_access && p.bump_url ? [{ title: 'Produk Bump', url: p.bump_url }] : []);
+            return items
+                .filter(item => item && item.url && item.url.trim() !== "" && item.url.trim() !== "#")
+                .map(item => `<a href="${item.url.trim()}" target="_blank" class="btn-bump mt-2"><i data-lucide="gift"></i> ${item.title || 'Produk Bump'}</a>`)
+                .join('');
+        }
+
+        function applyOwnedSearch() {
+            const q = (document.getElementById('owned-search-input')?.value || '').toLowerCase().trim();
+            const container = document.getElementById('list-owned');
+            if (!container || _ownedAllProducts.length === 0) return;
+            const filtered = q ? _ownedAllProducts.filter(p => p.title.toLowerCase().includes(q) || (p.desc || '').toLowerCase().includes(q)) : _ownedAllProducts;
+            if (filtered.length === 0) {
+                container.innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><div class="empty-icon"><i data-lucide="search-x"></i></div><p class="empty-text">Materi tidak ditemukan untuk "${q}".</p></div>`;
+                lucide.createIcons({ root: container });
+                return;
+            }
+            container.innerHTML = filtered.map(p => {
+                let linkMateri = `/akses?id=${p.id}`;
+                if (p.url && p.url.includes('akses-lms.html')) { linkMateri = p.url; }
+                const bumpBtnHTML = buildBumpBtnHTML(p);
+                return `<div class="prod-card"><h3 class="card-title">${p.title}</h3><p class="card-desc">${p.desc}</p><div class="card-actions"><div class="action-row"><a href="${linkMateri}" class="btn-main primary icon-only" data-tooltip="Akses"><i data-lucide="arrow-right"></i></a><button onclick="openAffiliateModal('${p.id}', '${p.lp_url || ''}')" class="btn-icon"><i data-lucide="share-2"></i></button></div>${bumpBtnHTML}</div></div>`;
+            }).join('');
+            lucide.createIcons({ root: container });
+        }
+
+        window.setKatalogCat = function(cat) {
+            _katalogCatFilter = cat;
+            renderKatalogCatFilter();
+            applyKatalogFilters();
+        };
+
+        function renderKatalogCatFilter() {
+            const wrap = document.getElementById('katalog-cat-filter');
+            if (!wrap || _katalogAllProducts.length === 0) return;
+
+            // Bangun daftar kategori: prioritas dari _katalogCategories (terurut), sisipkan yang tidak terdaftar di akhir
+            const prodCats = [];
+            _katalogAllProducts.forEach(p => {
+                const k = p.kategori || 'Umum';
+                if (!prodCats.includes(k)) prodCats.push(k);
+            });
+
+            let orderedCats = [];
+            if (_katalogCategories.length) {
+                orderedCats = _katalogCategories.map(c => c.name).filter(n => prodCats.includes(n));
+                prodCats.forEach(k => { if (!orderedCats.includes(k)) orderedCats.push(k); });
+            } else {
+                orderedCats = prodCats;
+            }
+
+            if (orderedCats.length <= 1) { wrap.innerHTML = ''; return; }
+
+            let html = `<button onclick="setKatalogCat('ALL')" class="cat-filter-btn ${_katalogCatFilter === 'ALL' ? 'active' : ''}">Semua</button>`;
+            orderedCats.forEach(c => {
+                html += `<button onclick="setKatalogCat('${c}')" class="cat-filter-btn ${_katalogCatFilter === c ? 'active' : ''}">${c}</button>`;
+            });
+            wrap.innerHTML = html;
+        }
+
+        window.applyKatalogFilters = function() {
+            const q = (document.getElementById('katalog-search-input')?.value || '').toLowerCase().trim();
+            let filtered = _katalogAllProducts;
+            if (_katalogCatFilter !== 'ALL') filtered = filtered.filter(p => (p.kategori || 'Umum') === _katalogCatFilter);
+            if (q) filtered = filtered.filter(p => (p.title || '').toLowerCase().includes(q) || (p.desc || '').toLowerCase().includes(q));
+            renderKatalogCards(filtered, q);
+        };
+
+        function renderKatalogCards(products, q = '') {
+            const container = document.getElementById('list-available');
+            if (!container) return;
+
+            if (products.length === 0) {
+                container.innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><div class="empty-icon"><i data-lucide="search-x"></i></div><p class="empty-text">Produk tidak ditemukan${q ? ` untuk "${q}"` : ''}.</p></div>`;
+                lucide.createIcons();
+                return;
+            }
+
+            container.innerHTML = products.map(p => {
+                // Gambar & judul -> landing page (kalau ada) sebagai halaman promo/info produk.
+                // Tombol "Beli" -> langsung ke checkout, tidak lagi lewat landing page.
+                const lpLink = (p.lp_url && p.lp_url !== '') ? `/${p.lp_url.replace(/^\/|\/$/g, '').trim()}` : `/checkout?id=${p.id}`;
+                const checkoutLink = `/checkout?id=${p.id}`;
+                const imgUrl = p.gambar || 'https://ik.imagekit.io/maihfdgfn5/download.png';
+                const kategori = p.kategori || 'Digital';
+                const cleanDesc = (p.desc || '').replace(/<[^>]*>?/gm, '').trim();
+                return `
+                <div class="kat-card">
+                    <a href="${lpLink}" class="kat-img-wrap" style="display:block;">
+                        <span class="kat-badge">${kategori}</span>
+                        <img src="${imgUrl}" alt="${p.title}" class="kat-img" loading="lazy">
+                    </a>
+                    <div class="kat-body">
+                        <h3 class="kat-title"><a href="${lpLink}" style="color:inherit;text-decoration:none;">${p.title}</a></h3>
+                        ${cleanDesc ? `<p class="kat-desc">${cleanDesc}</p>` : ''}
+                        <div class="kat-footer">
+                            <span class="kat-price">Rp ${Number(p.harga).toLocaleString('id-ID')}</span>
+                            <div class="kat-actions">
+                                <button onclick="openAffiliateModal('${p.id}', '${p.lp_url || ''}')" class="kat-btn-share" title="Link Affiliate">
+                                    <i data-lucide="share-2"></i>
+                                </button>
+                                <a href="${checkoutLink}" class="kat-btn-beli">Beli</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+            lucide.createIcons();
+        }
+        
+        function openAffiliateModal(productId, lpUrl) {
+            const currentUserId = localStorage.getItem('user_id') || 'GUEST'; 
+            let currentUrl = window.location.href; let dir = currentUrl.substring(0, currentUrl.lastIndexOf('/')); if(dir === "" || dir === currentUrl) dir = window.location.origin; 
+            
+            window.tempAffiliateData.checkout_url = `${dir}/checkout?id=${productId}&ref=${currentUserId}`;
+            window.tempAffiliateData.lp_url = (lpUrl && lpUrl.trim() !== "") ? `${dir}/${lpUrl.replace(/^\/|\/$/g, '').trim()}?ref=${currentUserId}` : `${dir}/?ref=${currentUserId}`;
+            
+            const m = document.getElementById('affiliate-modal'); const c = document.getElementById('affiliate-modal-content'); 
+            m.classList.remove('hidden'); void m.offsetWidth; m.style.opacity = '1'; c.style.transform = 'scale(1)'; c.style.opacity = '1';
+        }
+
+        function closeAffiliateModal() { 
+            const m = document.getElementById('affiliate-modal'); const c = document.getElementById('affiliate-modal-content'); 
+            m.style.opacity = '0'; c.style.transform = 'scale(0.95)'; c.style.opacity = '0';
+            setTimeout(() => { m.classList.add('hidden'); }, 300); 
+        }
+
+        function fallbackCopy(text) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.position = "fixed";
+            textArea.style.top = "-9999px";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                showToast(`✅ Link berhasil disalin!`, "success");
+                closeAffiliateModal();
+            } catch (err) {
+                showToast(`Gagal menyalin link otomatis.`, "error");
+            }
+            document.body.removeChild(textArea);
+        }
+
+        function copySpecificLink(type) { 
+            const linkToCopy = type === 'lp' ? window.tempAffiliateData.lp_url : window.tempAffiliateData.checkout_url;
+            
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(linkToCopy).then(() => {
+                    showToast(`✅ Link berhasil disalin!`, "success");
+                    closeAffiliateModal();
+                }).catch(() => {
+                    fallbackCopy(linkToCopy);
+                });
+            } else {
+                fallbackCopy(linkToCopy);
+            }
+        }
+
+        const DASHBOARD_CACHE_KEY = 'melimpah_dashboard_data';
+
+        function checkLoginStatus() {
+            const email = localStorage.getItem('user_email');
+            const authScreen = document.getElementById('auth-screen');
+            const memberScreen = document.getElementById('member-screen');
+            
+            if (email) {
+                authScreen.style.display = 'none';
+                memberScreen.style.display = 'flex';
+                
+                const userNama = localStorage.getItem('user_nama');
+                if (userNama) { document.getElementById('header-name').innerText = userNama.split(' ')[0]; }
+                loadDashboard();
+
+                const savedTab = sessionStorage.getItem('mem_active_tab');
+                if (savedTab && savedTab !== 'dashboard' && document.getElementById('view-' + savedTab)) {
+                    switchTab(savedTab);
+                }
+            } else {
+                authScreen.style.display = 'flex';
+                memberScreen.style.display = 'none';
+            }
+        }
+
+        function toggleAuthView(view) {
+            const viewLogin = document.getElementById('view-login');
+            const viewRegister = document.getElementById('view-register');
+            const loginLinks = document.getElementById('login-links');
+            const registerLinks = document.getElementById('register-links');
+
+            if (view === 'register') {
+                viewLogin.classList.add('hidden'); viewLogin.classList.remove('fade-in');
+                viewRegister.classList.remove('hidden'); viewRegister.classList.add('fade-in');
+                if(loginLinks) loginLinks.classList.add('hidden');
+                if(registerLinks) registerLinks.classList.remove('hidden');
+            } else {
+                viewRegister.classList.add('hidden'); viewRegister.classList.remove('fade-in');
+                viewLogin.classList.remove('hidden'); viewLogin.classList.add('fade-in');
+                if(registerLinks) registerLinks.classList.add('hidden');
+                if(loginLinks) loginLinks.classList.remove('hidden');
+            }
+        }
+
+        function togglePasswordVisibility(inputId, btnElement) {
+            const input = document.getElementById(inputId);
+            if (input.type === 'password') {
+                input.type = 'text'; btnElement.innerHTML = '<i data-lucide="eye"></i>';
+            } else {
+                input.type = 'password'; btnElement.innerHTML = '<i data-lucide="eye-off"></i>';
+            }
+            lucide.createIcons({ root: btnElement });
+        }
+
+        document.getElementById('form-login').onsubmit = async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('btn-login'); 
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i data-lucide="loader" class="animate-spin" style="width:1.25rem;height:1.25rem;"></i>'; 
+            btn.disabled = true; 
+            lucide.createIcons();
+
+            try {
+                const targetUrl = window.SCRIPT_URL || (typeof SCRIPT_URL !== 'undefined' ? SCRIPT_URL : null);
+                if(!targetUrl) throw new Error("Config.js error.");
+                
+                const res = await fetch(targetUrl, { method: 'POST', body: JSON.stringify({ action: 'login', email: document.getElementById('email').value, password: document.getElementById('pass').value }) });
+                const r = await res.json();
+                
+                if(r.status === 'success') {
+                    localStorage.setItem('user_email', r.data.email);
+                    localStorage.setItem('user_nama', r.data.nama);
+                    localStorage.setItem('user_id', r.data.id);
+                    localStorage.setItem('user_wa', r.data.wa || '');
+                    showToast("Login Berhasil! Memuat Dashboard...", "success");
+                    
+                    setTimeout(() => { 
+                        checkLoginStatus(); 
+                        btn.innerHTML = originalText; 
+                        btn.disabled = false;
+                        document.getElementById('form-login').reset();
+                        lucide.createIcons();
+                    }, 800);
+                } else { 
+                    showToast(r.message, "error"); 
+                    btn.innerHTML = originalText; btn.disabled = false; lucide.createIcons();
+                }
+            } catch (err) { 
+                showToast('Gagal koneksi server!', 'error'); 
+                btn.innerHTML = originalText; btn.disabled = false; lucide.createIcons();
+            }
+        };
+
+        document.getElementById('form-register').onsubmit = async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('btn-register'); const originalText = btn.innerText;
+            btn.innerHTML = '<i data-lucide="loader" class="animate-spin" style="width:1.25rem;height:1.25rem;"></i>'; btn.disabled = true; lucide.createIcons();
+
+            const pData = {
+                action: 'register_member', nama: document.getElementById('reg-nama').value, email: document.getElementById('reg-email').value, whatsapp: document.getElementById('reg-wa').value, password: document.getElementById('reg-pass').value, affiliate: localStorage.getItem('melimpah_affiliate') || "-" 
+            };
+
+            try {
+                const targetUrl = window.SCRIPT_URL || (typeof SCRIPT_URL !== 'undefined' ? SCRIPT_URL : null);
+                
+                const res = await fetch(targetUrl, { method: 'POST', body: JSON.stringify(pData) });
+                const r = await res.json();
+                
+                if(r.status === 'success') {
+                    showToast("Akun Berhasil Dibuat! Silakan Login.", "success");
+                    document.getElementById('form-register').reset();
+                    document.getElementById('email').value = pData.email;
+                    setTimeout(() => { toggleAuthView('login'); }, 1500);
+                } else { showToast(r.message || "Gagal membuat akun.", "error"); }
+            } catch (err) { showToast('Gagal koneksi server!', 'error'); } 
+            finally { if (btn.innerHTML.includes('loader')) { btn.innerText = originalText; btn.disabled = false; } }
+        };
+
+        function toggleSidebar() { 
+            document.getElementById('sidebar').classList.toggle('open'); 
+            document.getElementById('sidebar-overlay').classList.toggle('open'); 
+        }
+
+        const ALL_VIEWS = ['view-dashboard','view-owned','view-available','view-profil','view-tantangan','view-kupon'];
+
+        function hideAllViews() {
+            ALL_VIEWS.forEach(id => { const el = document.getElementById(id); if(el) el.classList.add('hidden'); });
+            const mpView = document.getElementById('view-member-page');
+            if(mpView) mpView.style.display = 'none';
+            const dashBody = document.querySelector('.dashboard-body');
+            if(dashBody) dashBody.style.display = 'none';
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.nav-item').forEach(el => { el.classList.remove('active'); el.classList.add('default'); });
+
+            const targetNav = document.getElementById(`nav-${tabId}`);
+            if(targetNav) { targetNav.classList.remove('default'); targetNav.classList.add('active'); }
+
+            hideAllViews();
+            const dashBody = document.querySelector('.dashboard-body');
+            if(dashBody) dashBody.style.display = '';
+            history.pushState({}, '', '/member');
+            sessionStorage.setItem('mem_active_tab', tabId);
+
+            if(tabId === 'dashboard') {
+                document.getElementById('view-dashboard').classList.remove('hidden');
+                document.getElementById('header-page-title').innerText = 'Dashboard Member';
+            } else if(tabId === 'owned') {
+                document.getElementById('view-owned').classList.remove('hidden');
+                document.getElementById('header-page-title').innerText = 'Materi Saya';
+            } else if(tabId === 'available') {
+                document.getElementById('view-available').classList.remove('hidden');
+                document.getElementById('header-page-title').innerText = 'Katalog Produk';
+            } else if(tabId === 'kupon') {
+                document.getElementById('view-kupon').classList.remove('hidden');
+                document.getElementById('header-page-title').innerText = 'Kupon Affiliasi Saya';
+                loadMyAffiliateCoupons();
+            } else if(tabId === 'profil') {
+                document.getElementById('view-profil').classList.remove('hidden');
+                document.getElementById('header-page-title').innerText = 'Profil Saya';
+                loadProfileData();
+            } else if(tabId === 'tantangan') {
+                const vt = document.getElementById('view-tantangan');
+                if(vt) vt.classList.remove('hidden');
+                const label = document.getElementById('nav-tantangan-label');
+                document.getElementById('header-page-title').innerText = label ? label.innerText : 'Tantangan';
+            }
+
+            if(window.innerWidth <= 768) { toggleSidebar(); }
+        }
+
+        function openMemberPage(slug, title) {
+            document.querySelectorAll('.nav-item').forEach(el => { el.classList.remove('active'); el.classList.add('default'); });
+            hideAllViews();
+
+            const frame = document.getElementById('frame-member-page');
+            if(frame) frame.src = '/' + slug + '?_embed=1';
+
+            const mpView = document.getElementById('view-member-page');
+            if(mpView) { mpView.classList.remove('hidden'); mpView.style.display = 'flex'; mpView.style.flexDirection = 'column'; }
+
+            const headerTitle = document.getElementById('header-page-title');
+            if(headerTitle) headerTitle.innerText = title || slug;
+
+            history.pushState({ memberPage: slug }, '', '/member?page=' + encodeURIComponent(slug));
+
+            if(window.innerWidth <= 768) toggleSidebar();
+        }
+        
+        function openRekeningModal() {
+            const m = document.getElementById('rekening-modal'); const c = document.getElementById('rekening-modal-content'); 
+            m.classList.remove('hidden'); void m.offsetWidth; m.style.opacity = '1'; c.style.transform = 'scale(1)'; c.style.opacity = '1';
+            
+            const sb = document.getElementById('sidebar'); if(sb) sb.classList.remove('open'); 
+            const sbo = document.getElementById('sidebar-overlay'); if(sbo) sbo.classList.remove('open');
+        }
+        function closeRekeningModal() {
+            const m = document.getElementById('rekening-modal'); const c = document.getElementById('rekening-modal-content'); 
+            m.style.opacity = '0'; c.style.transform = 'scale(0.95)'; c.style.opacity = '0';
+            setTimeout(() => { m.classList.add('hidden'); }, 200); 
+        }
+
+        function openPasswordModal() { 
+            const m = document.getElementById('password-modal'); const c = document.getElementById('password-modal-content'); 
+            m.classList.remove('hidden'); void m.offsetWidth; m.style.opacity = '1'; c.style.transform = 'scale(1)'; c.style.opacity = '1';
+            
+            const sb = document.getElementById('sidebar'); if(sb) sb.classList.remove('open'); 
+            const sbo = document.getElementById('sidebar-overlay'); if(sbo) sbo.classList.remove('open'); 
+        }
+        function closePasswordModal() { 
+            const m = document.getElementById('password-modal'); const c = document.getElementById('password-modal-content'); 
+            m.style.opacity = '0'; c.style.transform = 'scale(0.95)'; c.style.opacity = '0';
+            setTimeout(() => { m.classList.add('hidden'); document.getElementById('input-password-lama').value = ''; document.getElementById('input-password-baru').value = ''; document.getElementById('input-konfirmasi-password').value = ''; }, 200); 
+        }
+
+        function openLupaPasswordModal() {
+            const m = document.getElementById('lupa-password-modal'); const c = document.getElementById('lupa-password-modal-content');
+            m.classList.remove('hidden'); void m.offsetWidth; m.style.opacity = '1'; c.style.transform = 'scale(1)'; c.style.opacity = '1';
+            
+            const emailLogin = document.getElementById('email').value;
+            if(emailLogin) { document.getElementById('input-lupa-email').value = emailLogin; }
+        }
+        function closeLupaPasswordModal() {
+            const m = document.getElementById('lupa-password-modal'); const c = document.getElementById('lupa-password-modal-content');
+            m.style.opacity = '0'; c.style.transform = 'scale(0.95)'; c.style.opacity = '0';
+            setTimeout(() => { m.classList.add('hidden'); document.getElementById('input-lupa-email').value = ''; }, 200);
+        }
+
+        async function prosesLupaPassword(event) {
+            if(event) event.preventDefault();
+            const uEmail = document.getElementById('input-lupa-email').value;
+            
+            const btn = document.getElementById('btn-submit-lupa'); const oriText = btn.innerHTML;
+            btn.innerHTML = '<i data-lucide="loader" class="animate-spin"></i> Loading...'; btn.disabled = true; lucide.createIcons();
+
+            try {
+                const targetUrl = window.SCRIPT_URL || (typeof SCRIPT_URL !== 'undefined' ? SCRIPT_URL : null);
+                const res = await fetch(targetUrl, { method: 'POST', body: JSON.stringify({ action: 'forgot_password', email: uEmail }) });
+                const r = await res.json();
+                
+                if(r.status === 'success') {
+                    showToast("Sistem telah mengirim informasi password ke email Anda!", "success");
+                    closeLupaPasswordModal();
+                } else {
+                    showToast(r.message || "Gagal memproses, pastikan email terdaftar.", "error");
+                }
+            } catch(e) {
+                showToast("Gagal menghubungi server.", "error");
+            } finally {
+                btn.innerHTML = oriText; btn.disabled = false;
+            }
+        }
+
+        async function prosesUpdateRekening(event) {
+            if(event) event.preventDefault(); 
+            const uEmail = localStorage.getItem('user_email') || '';
+            const bank = document.getElementById('input-nama-bank').value; const norek = document.getElementById('input-nomor-rek').value; const nama = document.getElementById('input-atas-nama').value;
+            
+            const btn = document.getElementById('btn-save-rekening'); const oriText = btn.innerHTML;
+            btn.innerHTML = '<i data-lucide="loader" class="animate-spin"></i> Loading...'; btn.disabled = true; lucide.createIcons();
+
+            try {
+                const targetUrl = window.SCRIPT_URL || (typeof SCRIPT_URL !== 'undefined' ? SCRIPT_URL : null);
+                const res = await fetch(targetUrl, { method: 'POST', body: JSON.stringify({ action: 'update_rekening', email: uEmail, bank: bank, norek: norek, nama: nama }) });
+                const r = await res.json();
+                if(r.status === 'success') { showToast("Info Rekening berhasil disimpan!", "success"); closeRekeningModal(); } else { showToast(r.message || "Gagal menyimpan data.", "error"); }
+            } catch(e) { showToast("Gagal menghubungi server.", "error"); }
+            finally { btn.innerHTML = oriText; btn.disabled = false; }
+        }
+
+        async function prosesGantiPassword(event) {
+            if(event) event.preventDefault(); 
+            
+            const uEmail = localStorage.getItem('user_email');
+            
+            if (!uEmail) {
+                closePasswordModal();
+                return showToast("Aksi ditolak. Anda belum login!", "error");
+            }
+
+            const pLama = document.getElementById('input-password-lama').value; 
+            const pBaru = document.getElementById('input-password-baru').value; 
+            const pKonf = document.getElementById('input-konfirmasi-password').value;
+            if (pBaru !== pKonf) { return showToast("Password baru tidak cocok!", "error"); } if (pBaru.length < 6) { return showToast("Password minimal 6 karakter!", "error"); }
+            
+            const btn = document.getElementById('btn-save-password'); const oriText = btn.innerHTML;
+            btn.innerHTML = '<i data-lucide="loader" class="animate-spin"></i> Loading...'; btn.disabled = true; lucide.createIcons();
+
+            try {
+                const targetUrl = window.SCRIPT_URL || (typeof SCRIPT_URL !== 'undefined' ? SCRIPT_URL : null);
+                const res = await fetch(targetUrl, { method: 'POST', body: JSON.stringify({ action: 'change_password', email: uEmail, old_password: pLama, new_password: pBaru }) });
+                const r = await res.json();
+                if(r.status === 'success') { showToast("Password berhasil diubah!", "success"); closePasswordModal(); } else { showToast(r.message || "Gagal mengubah password.", "error"); }
+            } catch(e) { showToast("Gagal menghubungi server.", "error"); }
+            finally { btn.innerHTML = oriText; btn.disabled = false; }
+        }
+
+        async function renderDashboardUI(r) {
+            let totalLead = 0;
+            let totalSales = 0;
+            let totalOmset = 0;
+            
+            if (r.prospek && r.prospek.length > 0) {
+                totalLead = r.prospek.length;
+                totalSales = r.prospek.filter(p => p.status === 'Lunas' || p.status === 'Success' || p.status === 'Komisi Cair').length;
+                totalOmset = r.prospek.filter(p => p.status === 'Lunas' || p.status === 'Success' || p.status === 'Komisi Cair').reduce((sum, p) => sum + (Number(p.harga_produk) || 0), 0);
+            }
+            
+            document.getElementById('stat-lead').innerText = totalLead;
+            document.getElementById('stat-sales').innerText = totalSales;
+            document.getElementById('stat-omset').innerText = 'Rp ' + totalOmset.toLocaleString('id-ID');
+
+            if (r.total_komisi !== undefined) { 
+                document.getElementById('display-saldo-komisi').innerText = 'Rp ' + Number(r.total_komisi).toLocaleString('id-ID'); 
+            }
+
+            const ownedContainer = document.getElementById('list-owned');
+            if (r.owned && r.owned.length > 0) {
+                _ownedAllProducts = r.owned;
+                ownedContainer.innerHTML = r.owned.map(p => {
+                    let linkMateri = `/akses?id=${p.id}`; 
+                    if (p.url && p.url.includes('akses-lms.html')) { linkMateri = p.url; }
+
+                    const bumpBtnHTML = buildBumpBtnHTML(p);
+
+                    return `
+                    <div class="prod-card">
+                        <h3 class="card-title">${p.title}</h3>
+                        <p class="card-desc">${p.desc}</p>
+                        
+                        <div class="card-actions">
+                            <div class="action-row">
+                                <a href="${linkMateri}" class="btn-main primary icon-only" data-tooltip="Akses">
+                                    <i data-lucide="arrow-right"></i>
+                                </a>
+                                <button onclick="openAffiliateModal('${p.id}', '${p.lp_url || ''}')" class="btn-icon">
+                                    <i data-lucide="share-2"></i>
+                                </button>
+                            </div>
+                            ${bumpBtnHTML}
+                        </div>
+                    </div>
+                `}).join('');
+            } else {
+                ownedContainer.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon"><i data-lucide="folder-open"></i></div>
+                    <p class="empty-text">Belum ada materi aktif.</p>
+                </div>`;
+            }
+
+            if (r.available && r.available.length > 0) {
+                _katalogAllProducts = [...r.available].reverse();
+                _katalogCatFilter = 'ALL';
+                // Ambil urutan kategori
+                try {
+                    const catRes = await fetch(window.location.origin + '/', { method: 'POST', body: JSON.stringify({ action: 'get_categories' }) });
+                    const catData = await catRes.json();
+                    if (catData && catData.status === 'success' && catData.data) _katalogCategories = catData.data;
+                } catch(e) { _katalogCategories = []; }
+                renderKatalogCatFilter();
+                applyKatalogFilters();
+            } else {
+                _katalogAllProducts = [];
+                document.getElementById('katalog-cat-filter').innerHTML = '';
+                document.getElementById('list-available').innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><div class="empty-icon"><i data-lucide="package-x"></i></div><p class="empty-text">Katalog kosong.</p></div>`;
+            }
+
+            const prospekContainer = document.getElementById('list-prospek');
+            if (r.prospek && r.prospek.length > 0) {
+                prospekContainer.innerHTML = r.prospek.map(p => {
+                    let bClass = 'badge-pending';
+                    let extStyle = '';
+                    
+                    if(p.status === 'Lunas' || p.status === 'Success') {
+                        bClass = 'badge-lunas';
+                    } else if(p.status === 'Expired' || p.status === 'Cancelled') {
+                        bClass = 'badge-expired';
+                    } else if(p.status === 'Komisi Cair') {
+                        bClass = '';
+                        extStyle = 'background-color: var(--brand-orange); color: white; border: none;';
+                    }
+                    
+                    return `
+                    <tr>
+                        <td>${p.tanggal}</td>
+                        <td style="font-weight: 700; color: var(--slate-800);">${p.produk}<br><span style="font-size:0.65rem; color:var(--slate-500); font-weight:normal;">${p.nama} | Level ${p.level || 1}</span></td>
+                        <td style="font-weight: 800; color: var(--brand-blue);">Rp ${Number(p.komisi).toLocaleString('id-ID')}</td>
+                        <td><span class="badge-status ${bClass}" style="${extStyle}">${p.status}</span></td>
+                    </tr>`;
+                }).join('');
+            } else {
+                prospekContainer.innerHTML = `<tr><td colspan="4" style="text-align: center; padding: 3rem 1rem; color: var(--slate-500);">Belum ada riwayat pesanan.</td></tr>`;
+            }
+
+            // Member pages sidebar
+            const memberPagesList = r.member_pages || [];
+            window._memberPagesList = memberPagesList;
+            const navCatMemberPages = document.getElementById('nav-category-member-pages');
+            const navMemberPagesList = document.getElementById('nav-member-pages-list');
+            if (navCatMemberPages && navMemberPagesList) {
+                if (memberPagesList.length > 0) {
+                    navCatMemberPages.style.display = '';
+                    navMemberPagesList.innerHTML = memberPagesList.map(pg => {
+                        const safeSlug = (pg.slug || '').replace(/'/g, "\\'");
+                        const safeTitle = (pg.title || pg.slug || '').replace(/'/g, "\\'");
+                        const icon = pg.icon || '📄';
+                        return `<a href="#" onclick="openMemberPage('${safeSlug}','${safeTitle}'); return false;" class="nav-item default"><span style="font-size:1rem;line-height:1;">${icon}</span> ${pg.title || pg.slug}</a>`;
+                    }).join('');
+                } else {
+                    navCatMemberPages.style.display = 'none';
+                    navMemberPagesList.innerHTML = '';
+                }
+            }
+
+            lucide.createIcons();
+            checkAndOpenPageFromUrl();
+        }
+
+        function forceSync() {
+            const uEmail = localStorage.getItem('user_email') || 'admin';
+            localStorage.removeItem(DASHBOARD_CACHE_KEY + '_' + uEmail);
+            showToast('Memuat ulang data terbaru...', 'warning');
+            loadDashboard(true);
+        }
+
+        async function loadDashboard(force = false) {
+            const uEmail = localStorage.getItem('user_email');
+            const isAdm = localStorage.getItem('adm_v10') === 'true' || localStorage.getItem('melimpah_admin_data') !== null;
+            const payloadEmail = (isAdm && !uEmail) ? "" : uEmail;
+            const cacheKeyUser = DASHBOARD_CACHE_KEY + '_' + (uEmail || 'admin');
+            
+            const cachedData = localStorage.getItem(cacheKeyUser);
+            if(cachedData && !force) { renderDashboardUI(JSON.parse(cachedData)); }
+
+            try {
+                if(typeof window.SCRIPT_URL === 'undefined' && typeof SCRIPT_URL === 'undefined') return;
+                const targetUrl = window.SCRIPT_URL || SCRIPT_URL;
+                
+                let payload = { action: 'get_products', email: payloadEmail };
+                if (force) payload.refresh = true;
+
+                const res = await fetch(targetUrl, { method: 'POST', body: JSON.stringify(payload) });
+                const r = await res.json();
+
+                if (r.status === 'success') {
+                    const freshData = JSON.stringify(r);
+                    if(cachedData !== freshData || force) {
+                        localStorage.setItem(cacheKeyUser, freshData);
+                        renderDashboardUI(r);
+                    }
+                } else { 
+                    if(!cachedData) showToast('Gagal memuat data.', 'error'); 
+                }
+            } catch (err) { 
+                if(!cachedData) showToast('Kesalahan koneksi jaringan.', 'error'); 
+            }
+        }
+
+        async function loadProfileData() {
+            const uEmail = localStorage.getItem('user_email');
+            if(!uEmail) return;
+
+            document.getElementById('profil-email').value = uEmail;
+            document.getElementById('profil-nama').value = localStorage.getItem('user_nama') || '';
+            document.getElementById('profil-no').value = localStorage.getItem('user_wa') || '';
+
+            const cached = localStorage.getItem('user_profil');
+            if(cached) {
+                try {
+                    const p = JSON.parse(cached);
+                    if(p.alamat) document.getElementById('profil-alamat').value = p.alamat;
+                    if(p.usia) document.getElementById('profil-usia').value = p.usia;
+                    if(p.status) document.getElementById('profil-status').value = p.status;
+                    if(p.tujuan_karir) document.getElementById('profil-tujuan-karir').value = p.tujuan_karir;
+                    if(p.instagram) document.getElementById('profil-ig').value = p.instagram;
+                    if(p.tiktok) document.getElementById('profil-tiktok').value = p.tiktok;
+                    if(p.facebook) document.getElementById('profil-facebook').value = p.facebook;
+                } catch(e){}
+            }
+
+            try {
+                const targetUrl = window.SCRIPT_URL || (typeof SCRIPT_URL !== 'undefined' ? SCRIPT_URL : null);
+                if(!targetUrl) return;
+                const res = await fetch(targetUrl, { method: 'POST', body: JSON.stringify({ action: 'get_profile', email: uEmail }) });
+                const r = await res.json();
+                if(r.status === 'success' && r.data) {
+                    const p = r.data;
+                    if(p.nama) document.getElementById('profil-nama').value = p.nama;
+                    if(p.no || p.whatsapp) document.getElementById('profil-no').value = p.no || p.whatsapp;
+                    if(p.alamat !== undefined) document.getElementById('profil-alamat').value = p.alamat || '';
+                    if(p.usia !== undefined) document.getElementById('profil-usia').value = p.usia || '';
+                    if(p.status !== undefined) document.getElementById('profil-status').value = p.status || '';
+                    if(p.tujuan_karir !== undefined) document.getElementById('profil-tujuan-karir').value = p.tujuan_karir || '';
+                    if(p.instagram !== undefined) document.getElementById('profil-ig').value = p.instagram || '';
+                    if(p.tiktok !== undefined) document.getElementById('profil-tiktok').value = p.tiktok || '';
+                    if(p.facebook !== undefined) document.getElementById('profil-facebook').value = p.facebook || '';
+                    localStorage.setItem('user_profil', JSON.stringify(p));
+                }
+            } catch(e){}
+        }
+
+        function openAddCouponModal() {
+            const m = document.getElementById('add-coupon-modal'); const c = document.getElementById('add-coupon-modal-content');
+            document.getElementById('input-kupon-kode').value = '';
+            const sel = document.getElementById('input-kupon-utama');
+            sel.innerHTML = '<option value="">Memuat...</option>';
+            m.classList.remove('hidden'); void m.offsetWidth; m.style.opacity = '1'; c.style.transform = 'scale(1)'; c.style.opacity = '1';
+            const sb = document.getElementById('sidebar'); if(sb) sb.classList.remove('open');
+            const sbo = document.getElementById('sidebar-overlay'); if(sbo) sbo.classList.remove('open');
+
+            (async () => {
+                try {
+                    const targetUrl = window.SCRIPT_URL || (typeof SCRIPT_URL !== 'undefined' ? SCRIPT_URL : null);
+                    const res = await fetch(targetUrl, { method: 'POST', body: JSON.stringify({ action: 'get_affiliate_base_coupons' }) });
+                    const r = await res.json();
+                    const list = (r.status === 'success' && r.data) ? r.data : [];
+                    sel.innerHTML = list.length
+                        ? list.map(c => `<option value="${c.kode_promo}">${c.kode_promo} (${c.tipe === 'Persen' ? c.nilai + '%' : 'Rp' + Number(c.nilai).toLocaleString('id-ID')})</option>`).join('')
+                        : '<option value="">Belum ada kupon yang bisa dipakai</option>';
+                } catch(e) { sel.innerHTML = '<option value="">Gagal memuat kupon</option>'; }
+            })();
+        }
+        function closeAddCouponModal() {
+            const m = document.getElementById('add-coupon-modal'); const c = document.getElementById('add-coupon-modal-content');
+            m.style.opacity = '0'; c.style.transform = 'scale(0.95)'; c.style.opacity = '0';
+            setTimeout(() => { m.classList.add('hidden'); }, 200);
+        }
+
+        async function prosesTambahKupon(event) {
+            if(event) event.preventDefault();
+            const uEmail = localStorage.getItem('user_email');
+            if(!uEmail) return showToast('Anda belum login!', 'error');
+            const baseKode = document.getElementById('input-kupon-utama').value;
+            const kodePromo = document.getElementById('input-kupon-kode').value.trim().toUpperCase();
+            if(!baseKode) return showToast('Pilih kupon utama dulu.', 'error');
+            if(!kodePromo) return showToast('Isi kode kupon kamu.', 'error');
+
+            const btn = document.getElementById('btn-save-kupon');
+            const oriHTML = btn.innerHTML;
+            btn.innerHTML = '<i data-lucide="loader" class="animate-spin"></i> Menyimpan...';
+            btn.disabled = true;
+            lucide.createIcons({ root: btn });
+
+            try {
+                const targetUrl = window.SCRIPT_URL || (typeof SCRIPT_URL !== 'undefined' ? SCRIPT_URL : null);
+                const res = await fetch(targetUrl, { method: 'POST', body: JSON.stringify({ action: 'create_affiliate_coupon', email: uEmail, base_kode: baseKode, kode_promo: kodePromo }) });
+                const r = await res.json();
+                if(r.status === 'success') {
+                    showToast(r.message || 'Kupon berhasil dibuat!', 'success');
+                    closeAddCouponModal();
+                    loadMyAffiliateCoupons();
+                } else {
+                    showToast(r.message || 'Gagal membuat kupon.', 'error');
+                }
+            } catch(e) { showToast('Koneksi terputus.', 'error'); }
+
+            btn.innerHTML = oriHTML;
+            btn.disabled = false;
+            lucide.createIcons({ root: btn });
+        }
+
+        async function loadMyAffiliateCoupons() {
+            const uEmail = localStorage.getItem('user_email');
+            const tbody = document.getElementById('list-my-coupons');
+            if(!uEmail || !tbody) return;
+            try {
+                const targetUrl = window.SCRIPT_URL || (typeof SCRIPT_URL !== 'undefined' ? SCRIPT_URL : null);
+                const res = await fetch(targetUrl, { method: 'POST', body: JSON.stringify({ action: 'get_my_affiliate_coupons', email: uEmail }) });
+                const r = await res.json();
+                const list = (r.status === 'success' && r.data) ? r.data : [];
+                if(list.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:2rem;color:var(--text-muted,#94a3b8);">Kamu belum punya kupon. Klik "Tambah Kupon" untuk buat.</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = list.map(c => {
+                    const statusBadge = c.status === 'Active'
+                        ? '<span style="font-size:0.7rem;font-weight:800;color:#16a34a;background:#f0fdf4;border:1px solid #bbf7d0;padding:0.2rem 0.6rem;border-radius:9999px;">Aktif</span>'
+                        : '<span style="font-size:0.7rem;font-weight:800;color:#e11d48;background:#fff1f2;border:1px solid #fecdd3;padding:0.2rem 0.6rem;border-radius:9999px;">Nonaktif</span>';
+                    return `<tr><td style="font-family:monospace;font-weight:800;">${c.kode_promo}</td><td>${c.base_kode}</td><td>${c.penggunaan}x</td><td>${statusBadge}</td></tr>`;
+                }).join('');
+            } catch(e) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:2rem;color:#e11d48;">Gagal memuat data kupon.</td></tr>';
+            }
+        }
+
+        async function saveProfileData(event) {
+            if(event) event.preventDefault();
+            const uEmail = localStorage.getItem('user_email');
+            if(!uEmail) return showToast('Anda belum login!', 'error');
+
+            const btn = document.getElementById('btn-save-profil');
+            const oriHTML = btn.innerHTML;
+            btn.innerHTML = '<i data-lucide="loader" class="animate-spin"></i> Menyimpan...';
+            btn.disabled = true;
+            lucide.createIcons({ root: btn });
+
+            const payload = {
+                action: 'update_profile',
+                email: uEmail,
+                nama: document.getElementById('profil-nama').value,
+                no: document.getElementById('profil-no').value,
+                alamat: document.getElementById('profil-alamat').value,
+                usia: document.getElementById('profil-usia').value,
+                status: document.getElementById('profil-status').value,
+                tujuan_karir: document.getElementById('profil-tujuan-karir').value,
+                instagram: document.getElementById('profil-ig').value,
+                tiktok: document.getElementById('profil-tiktok').value,
+                facebook: document.getElementById('profil-facebook').value,
+            };
+
+            try {
+                const targetUrl = window.SCRIPT_URL || (typeof SCRIPT_URL !== 'undefined' ? SCRIPT_URL : null);
+                if(!targetUrl) throw new Error('Config error');
+                const res = await fetch(targetUrl, { method: 'POST', body: JSON.stringify(payload) });
+                const r = await res.json();
+                if(r.status === 'success') {
+                    localStorage.setItem('user_nama', payload.nama);
+                    localStorage.setItem('user_wa', payload.no);
+                    localStorage.setItem('user_profil', JSON.stringify(payload));
+                    document.getElementById('header-name').innerText = payload.nama.split(' ')[0];
+                    showToast('Profil berhasil disimpan!', 'success');
+                } else {
+                    showToast(r.message || 'Gagal menyimpan profil.', 'error');
+                }
+            } catch(e) {
+                showToast('Gagal menghubungi server.', 'error');
+            } finally {
+                btn.innerHTML = oriHTML;
+                btn.disabled = false;
+                lucide.createIcons({ root: btn });
+            }
+        }
+
+        function logout() {
+            const uEmail = localStorage.getItem('user_email') || 'admin';
+            sessionStorage.clear();
+            ['user_email','user_nama','user_id','user_wa','user_profil','adm_v10'].forEach(k => localStorage.removeItem(k));
+            localStorage.removeItem(DASHBOARD_CACHE_KEY + '_' + uEmail);
+            checkLoginStatus();
+        }
+
+        function checkAndOpenPageFromUrl() {
+            const params = new URLSearchParams(window.location.search);
+            const pageSlug = params.get('page');
+            if (!pageSlug) return;
+            const cached = (window._memberPagesList || []).find(pg => pg.slug === pageSlug);
+            openMemberPage(pageSlug, cached ? cached.title : pageSlug);
+        }
+
+        window.addEventListener('popstate', (e) => {
+            const params = new URLSearchParams(window.location.search);
+            const pageSlug = params.get('page');
+            if (pageSlug) {
+                const cached = (window._memberPagesList || []).find(pg => pg.slug === pageSlug);
+                openMemberPage(pageSlug, cached ? cached.title : pageSlug);
+            } else {
+                hideAllViews();
+                document.getElementById('view-dashboard').classList.remove('hidden');
+                document.getElementById('header-page-title').innerText = 'Dashboard Member';
+                document.querySelectorAll('.nav-item').forEach(el => { el.classList.remove('active'); el.classList.add('default'); });
+                const navDash = document.getElementById('nav-dashboard');
+                if(navDash) { navDash.classList.remove('default'); navDash.classList.add('active'); }
+            }
+        });
+
+        window.onload = () => {
+            lucide.createIcons();
+            checkLoginStatus();
+        };
+
+        // Saat halaman ini dibuka lewat tombol Back/Forward browser, sebagian browser cuma menampilkan
+        // "foto" halaman lama dari bfcache tanpa menjalankan ulang window.onload — akibatnya konten
+        // dashboard (yang diisi lewat fetch) tampak kosong. Deteksi lewat event.persisted & muat ulang datanya.
+        window.addEventListener('pageshow', (event) => {
+            if (event.persisted) {
+                checkLoginStatus();
+            }
+        });
+    </script>
+</body>
+</html>

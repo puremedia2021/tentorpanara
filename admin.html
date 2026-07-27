@@ -1912,6 +1912,13 @@ Jika masih berminat, silakan pesan ulang melalui halaman berikut:
                     <div class="form-group" style="margin: 0;"><label class="form-label">Status Kupon</label><select id="c-status" class="form-select"><option value="Active">Aktif</option><option value="Inactive">Nonaktif / Expired</option></select></div>
                     <div class="form-group" style="margin: 0;"><label class="form-label">Kategori</label><select id="c-kategori" class="form-select"></select></div>
                 </div>
+                <div class="form-group" style="border: 1px dashed #a78bfa; padding: 0.75rem 1rem; border-radius: 0.375rem; background: #f5f3ff; display:flex; align-items:flex-start; gap:0.625rem;">
+                    <input type="checkbox" id="c-allow-affiliate-clone" style="margin-top:0.2rem;">
+                    <label for="c-allow-affiliate-clone" style="cursor:pointer;">
+                        <span style="display:block;font-weight:800;color:#6d28d9;font-size:0.875rem;">Boleh dipakai member untuk bikin kupon sendiri</span>
+                        <span style="display:block;font-size:0.75rem;color:var(--slate-500);margin-top:0.15rem;">Member affiliate bisa buat kode kupon versi mereka sendiri (diskon &amp; produk sama seperti kupon ini). Order yang pakai kupon versi member akan otomatis tercatat sebagai referral member itu.</span>
+                    </label>
+                </div>
                 <div class="modal-footer"><button type="button" onclick="closeModal('modal-coupon')" class="btn-cancel">BATAL</button><button type="submit" class="btn-primary">Simpan Kupon</button></div>
             </form>
         </div>
@@ -3976,6 +3983,7 @@ Jika masih berminat, silakan pesan ulang melalui halaman berikut:
             cpnChecked = new Set();
             populateCouponProdPicker();
             populateCategoryDropdowns();
+            document.getElementById('c-allow-affiliate-clone').checked = false;
             document.getElementById('modal-coupon').classList.remove('hidden');
         }
         function editCoupon(code) {
@@ -3994,6 +4002,7 @@ Jika masih berminat, silakan pesan ulang melalui halaman berikut:
             populateCouponProdPicker();
             populateCategoryDropdowns();
             const cKatSel = document.getElementById('c-kategori'); if (cKatSel) cKatSel.value = c[5] || 'Umum';
+            document.getElementById('c-allow-affiliate-clone').checked = Number(c[6] || 0) === 1;
             document.getElementById('modal-coupon').classList.remove('hidden');
         }
         async function deleteCoupon(code) {
@@ -4009,7 +4018,7 @@ Jika masih berminat, silakan pesan ulang melalui halaman berikut:
             e.preventDefault(); const form = document.getElementById('form-coupon'); const btn = form.querySelector('button[type="submit"]'); const oriText = btn.innerHTML;
             btn.innerHTML = '<i data-lucide="loader" class="animate-spin" style="width: 1rem;"></i> PROSES...'; btn.disabled = true; lucide.createIcons();
             const cpnProdsVal = Array.from(cpnChecked).join(',');
-            const p = { action: 'save_coupon', code: document.getElementById('c-code').value, type: document.getElementById('c-type').value, val: document.getElementById('c-val').value, status: document.getElementById('c-status').value, products: cpnProdsVal, old_code: document.getElementById('c-old-code').value, is_edit: document.getElementById('c-is-edit').value === 'true', kategori: (document.getElementById('c-kategori')?.value || 'Umum') };
+            const p = { action: 'save_coupon', code: document.getElementById('c-code').value, type: document.getElementById('c-type').value, val: document.getElementById('c-val').value, status: document.getElementById('c-status').value, products: cpnProdsVal, old_code: document.getElementById('c-old-code').value, is_edit: document.getElementById('c-is-edit').value === 'true', kategori: (document.getElementById('c-kategori')?.value || 'Umum'), allow_affiliate_clone: document.getElementById('c-allow-affiliate-clone').checked };
             try {
                 const targetUrl = window.SCRIPT_URL || (typeof SCRIPT_URL !== 'undefined' ? SCRIPT_URL : null);
                 const res = await fetch(targetUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(p) }); const text = await res.text(); let data; try { data = JSON.parse(text); } catch(err) { throw new Error('Format error'); }
